@@ -1,8 +1,11 @@
+mod keyboard_event;
+use core::panic;
 use std::io::{stdout, Result};
 
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use keyboard_event::{handle_keyboard_events, KeyPressEvent};
 use ratatui::{
     crossterm::{
-        event::{self, Event, KeyCode},
         execute,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
     },
@@ -22,24 +25,27 @@ impl TypingState {
         self.sentence.chars().nth(self.index).unwrap()
     }
 
-    fn update_state(&mut self) {
-        match event::poll(std::time::Duration::from_millis(10)) {
-            Ok(flag) => {
-                if flag {
-                    if let Ok(Event::Key(key)) = event::read() {
-                        if key.kind == event::KeyEventKind::Press
-                            && key.code == KeyCode::Char(self.get_current_char())
-                        {
-                            self.index += 1;
-                            self.update_color = true;
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                panic!("Failed to poll {}", e);
-            }
-        };
+    fn process_event(&mut self, key_press_event: KeyPressEvent) -> bool {
+        if KeyPressEvent::KeyPress(KeyEvent {
+            code: KeyCode::Esc,
+            modifiers: KeyModifiers::NONE,
+            state: KeyEventState::NONE,
+            kind: KeyEventKind::Press,
+        }) == key_press_event
+        {
+            return true;
+        } else if KeyPressEvent::KeyPress(KeyEvent {
+            code: KeyCode::Char(self.get_current_char()),
+            modifiers: KeyModifiers::NONE,
+            state: KeyEventState::NONE,
+            kind: KeyEventKind::Press,
+        }) == key_press_event
+        {
+            self.index += 1;
+            self.update_color = true;
+        }
+
+        false
     }
 }
 
@@ -80,9 +86,7 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         Constraint::Length(frame.size().height / 3 as u16),
     );
 
-    state.update_state();
-    frame.render_widget(Clear, area);
-
+    // frame.render_widget(Clear, area);
     if state.update_color {
         frame.render_widget(Block::new().borders(Borders::all()), keyboard);
         state.update_color = false;
@@ -97,28 +101,8 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
 }
 
 // handles closing of the typing application.
-fn handle_exit() -> bool {
-    match event::poll(std::time::Duration::from_millis(10)) {
-        Ok(flag) => {
-            if flag {
-                if let Ok(Event::Key(key)) = event::read() {
-                    if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Esc {
-                        return true;
-                    }
-
-                    return false;
-                }
-            }
-        }
-        Err(e) => {
-            panic!("Failed to poll {}", e);
-        }
-    };
-
-    false
-}
-
-fn main() -> Result<()> {
+#[async_std::main]
+async fn main() -> Result<()> {
     if let Err(e) = enable_raw_mode() {
         panic!("Failed to enable raw mode Error: {}", e);
     };
@@ -130,20 +114,34 @@ fn main() -> Result<()> {
         };
 
     let mut state_struct = TypingState {
-        sentence: String::from("fuck the world"),
+        sentence: String::from("Rock and roll"),
         index: (0 as usize),
         update_color: false,
     };
 
-    let _ = terminal.clear();
+    let _ = terminal.draw(|f| {
+        render(f, &mut state_struct);
+    });
+
+    let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyPressEvent>();
     loop {
-        if handle_exit() {
+        async_std::task::spawn(handle_keyboard_events(sn.clone()));
+
+        let quit = match rc.recv().await {
+            Ok(rec_eve) => {
+                let quit = state_struct.process_event(rec_eve);
+                let _ = terminal.draw(|f| {
+                    render(f, &mut state_struct);
+                });
+
+                quit
+            }
+            Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
+        };
+
+        if quit {
             break;
         }
-
-        let _ = terminal.draw(|f| {
-            render(f, &mut state_struct);
-        });
     }
 
     if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
