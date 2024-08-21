@@ -1,6 +1,7 @@
 mod keyboard_event;
 use core::panic;
 use std::io::{stdout, Result};
+use std::rc::Rc;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use keyboard_event::{handle_keyboard_events, KeyPressEvent};
@@ -61,7 +62,7 @@ fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect
     area
 }
 
-fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rc<[Rect]> {
     let [area] = Layout::horizontal([horizontal])
         .flex(layout::Flex::Center)
         .areas(area);
@@ -70,7 +71,13 @@ fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> 
         .flex(layout::Flex::End)
         .areas(area);
 
-    area
+    let rects = Layout::new(
+        Direction::Vertical,
+        Constraint::from_percentages([20, 20, 20, 20, 20]),
+    )
+    .split(area);
+
+    rects
 }
 
 fn render(frame: &mut Frame, state: &mut TypingState) {
@@ -86,12 +93,10 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         Constraint::Length(frame.size().height / 3 as u16),
     );
 
-    // frame.render_widget(Clear, area);
-    if state.update_color {
-        frame.render_widget(Block::new().borders(Borders::all()), keyboard);
-        state.update_color = false;
-    } else {
-        frame.render_widget(Block::new().borders(Borders::all()).blue(), keyboard);
+    frame.render_widget(Clear, area);
+
+    for k in keyboard.into_iter() {
+        frame.render_widget(Block::new().borders(Borders::all()).blue(), *k);
     }
 
     frame.render_widget(
@@ -128,20 +133,17 @@ async fn main() -> Result<()> {
         async_std::task::spawn(handle_keyboard_events(sn.clone()));
 
         let quit = match rc.recv().await {
-            Ok(rec_eve) => {
-                let quit = state_struct.process_event(rec_eve);
-                let _ = terminal.draw(|f| {
-                    render(f, &mut state_struct);
-                });
-
-                quit
-            }
+            Ok(rec_eve) => state_struct.process_event(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
         if quit {
             break;
         }
+
+        let _ = terminal.draw(|f| {
+            render(f, &mut state_struct);
+        });
     }
 
     if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
