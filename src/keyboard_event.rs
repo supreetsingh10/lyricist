@@ -5,7 +5,7 @@ use crossterm::event::{Event, EventStream, KeyEvent};
 use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum KeyPressEvent {
     KeyPress(KeyEvent),
     NoPress,

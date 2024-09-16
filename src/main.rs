@@ -2,9 +2,11 @@ mod keyboard_event;
 use core::panic;
 use std::io::{stdout, Result};
 use std::rc::Rc;
+use std::u16;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use keyboard_event::{handle_keyboard_events, KeyPressEvent};
+use layout::Layout;
 use ratatui::{
     crossterm::{
         execute,
@@ -14,11 +16,101 @@ use ratatui::{
     widgets::*,
 };
 
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+enum KeyLength {
+    SHORT,
+    MEDIUM,
+    LONG,
+}
+
+#[derive(Clone, Debug)]
+struct Keys {
+    keychar: char,
+    keylength: KeyLength,
+    boxlevel: u16,
+}
+
+impl Keys {
+    fn from_values(l_keychar: char, l_keylength: KeyLength, l_boxlevel: u16) -> Self {
+        Keys {
+            keychar: l_keychar,
+            keylength: l_keylength,
+            boxlevel: l_boxlevel,
+        }
+    }
+}
+
+fn initialize_keys() -> Vec<Keys> {
+    vec![
+        Keys::from_values('Q', KeyLength::SHORT, 0),
+        Keys::from_values('W', KeyLength::SHORT, 0),
+        Keys::from_values('E', KeyLength::SHORT, 0),
+        Keys::from_values('R', KeyLength::SHORT, 0),
+        Keys::from_values('T', KeyLength::SHORT, 0),
+        Keys::from_values('Y', KeyLength::SHORT, 0),
+        Keys::from_values('U', KeyLength::SHORT, 0),
+        Keys::from_values('I', KeyLength::SHORT, 0),
+        Keys::from_values('O', KeyLength::SHORT, 0),
+        Keys::from_values('P', KeyLength::SHORT, 0),
+        Keys::from_values('A', KeyLength::SHORT, 1),
+        Keys::from_values('S', KeyLength::SHORT, 1),
+        Keys::from_values('D', KeyLength::SHORT, 1),
+        Keys::from_values('F', KeyLength::SHORT, 1),
+        Keys::from_values('G', KeyLength::SHORT, 1),
+        Keys::from_values('H', KeyLength::SHORT, 1),
+        Keys::from_values('J', KeyLength::SHORT, 1),
+        Keys::from_values('K', KeyLength::SHORT, 1),
+        Keys::from_values('L', KeyLength::SHORT, 2),
+        Keys::from_values('Z', KeyLength::SHORT, 2),
+        Keys::from_values('X', KeyLength::SHORT, 2),
+        Keys::from_values('C', KeyLength::SHORT, 2),
+        Keys::from_values(' ', KeyLength::LONG, 2),
+        Keys::from_values('V', KeyLength::SHORT, 2),
+        Keys::from_values('B', KeyLength::SHORT, 2),
+        Keys::from_values('N', KeyLength::SHORT, 2),
+        Keys::from_values('M', KeyLength::SHORT, 2),
+    ]
+}
+
 #[derive(Clone, Debug)]
 struct TypingState {
     sentence: String,
     index: usize,
     update_color: bool,
+    keypressed: Option<char>,
+}
+
+trait Split {
+    fn from_num(num: u16, rect: Rect, direction: Direction) -> Rc<[Rect]>;
+}
+
+impl Split for Constraint {
+    fn from_num(num: u16, rect: Rect, direction: Direction) -> Rc<[Rect]> {
+        match direction {
+            Direction::Horizontal => Layout::new(
+                Direction::Horizontal,
+                Constraint::from_ratios([
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                    (1, 10),
+                ]),
+            )
+            .split(rect),
+            Direction::Vertical => Layout::new(
+                Direction::Vertical,
+                Constraint::from_lengths([rect.height / num]),
+            )
+            .split(rect),
+        }
+    }
 }
 
 impl TypingState {
@@ -62,7 +154,7 @@ fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect
     area
 }
 
-fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rc<[Rect]> {
+fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> Vec<Rc<[Rect]>> {
     let [area] = Layout::horizontal([horizontal])
         .flex(layout::Flex::Center)
         .areas(area);
@@ -73,11 +165,21 @@ fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> 
 
     let rects = Layout::new(
         Direction::Vertical,
-        Constraint::from_percentages([20, 20, 20, 20, 20]),
+        Constraint::from_percentages([25, 25, 25, 25]),
     )
     .split(area);
 
-    rects
+    // let us render keys here.
+    render_keys(Rc::clone(&rects))
+}
+
+fn render_keys(keyboard: Rc<[Rect]>) -> Vec<Rc<[Rect]>> {
+    let mut v = vec![];
+    for k in keyboard.into_iter() {
+        v.push(Constraint::from_num(10 as u16, *k, Direction::Horizontal));
+    }
+
+    v
 }
 
 fn render(frame: &mut Frame, state: &mut TypingState) {
@@ -93,10 +195,17 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         Constraint::Length(frame.size().height / 3 as u16),
     );
 
-    frame.render_widget(Clear, area);
+    if state.update_color {
+        frame.render_widget(Block::new().borders(Borders::all()).blue(), area);
+    } else {
+        frame.render_widget(Clear, area);
+        frame.render_widget(Block::new().borders(Borders::all()).white(), area);
+    }
 
     for k in keyboard.into_iter() {
-        frame.render_widget(Block::new().borders(Borders::all()).blue(), *k);
+        for kk in k.into_iter() {
+            frame.render_widget(Block::new().borders(Borders::all()), *kk);
+        }
     }
 
     frame.render_widget(
@@ -105,7 +214,6 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
     );
 }
 
-// handles closing of the typing application.
 #[async_std::main]
 async fn main() -> Result<()> {
     if let Err(e) = enable_raw_mode() {
@@ -122,13 +230,12 @@ async fn main() -> Result<()> {
         sentence: String::from("Rock and roll"),
         index: (0 as usize),
         update_color: false,
+        keypressed: None,
     };
 
-    let _ = terminal.draw(|f| {
-        render(f, &mut state_struct);
-    });
-
+    let _keys = initialize_keys();
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyPressEvent>();
+    let _ = terminal.clear();
     loop {
         async_std::task::spawn(handle_keyboard_events(sn.clone()));
 
@@ -137,13 +244,13 @@ async fn main() -> Result<()> {
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
-        if quit {
-            break;
-        }
-
         let _ = terminal.draw(|f| {
             render(f, &mut state_struct);
         });
+
+        if quit {
+            break;
+        }
     }
 
     if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
