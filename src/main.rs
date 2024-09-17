@@ -4,7 +4,7 @@ use std::io::{stdout, Result};
 use std::rc::Rc;
 use std::u16;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use keyboard_event::{handle_keyboard_events, KeyPressEvent};
 use layout::Layout;
 use ratatui::{
@@ -24,16 +24,17 @@ enum KeyLength {
     LONG,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
-struct Keys {
+struct Key {
     keychar: char,
     keylength: KeyLength,
     boxlevel: u16,
 }
 
-impl Keys {
+impl Key {
     fn from_values(l_keychar: char, l_keylength: KeyLength, l_boxlevel: u16) -> Self {
-        Keys {
+        Key {
             keychar: l_keychar,
             keylength: l_keylength,
             boxlevel: l_boxlevel,
@@ -41,36 +42,54 @@ impl Keys {
     }
 }
 
-fn initialize_keys() -> Vec<Keys> {
+fn initialize_keys() -> Vec<Key> {
     vec![
-        Keys::from_values('Q', KeyLength::SHORT, 0),
-        Keys::from_values('W', KeyLength::SHORT, 0),
-        Keys::from_values('E', KeyLength::SHORT, 0),
-        Keys::from_values('R', KeyLength::SHORT, 0),
-        Keys::from_values('T', KeyLength::SHORT, 0),
-        Keys::from_values('Y', KeyLength::SHORT, 0),
-        Keys::from_values('U', KeyLength::SHORT, 0),
-        Keys::from_values('I', KeyLength::SHORT, 0),
-        Keys::from_values('O', KeyLength::SHORT, 0),
-        Keys::from_values('P', KeyLength::SHORT, 0),
-        Keys::from_values('A', KeyLength::SHORT, 1),
-        Keys::from_values('S', KeyLength::SHORT, 1),
-        Keys::from_values('D', KeyLength::SHORT, 1),
-        Keys::from_values('F', KeyLength::SHORT, 1),
-        Keys::from_values('G', KeyLength::SHORT, 1),
-        Keys::from_values('H', KeyLength::SHORT, 1),
-        Keys::from_values('J', KeyLength::SHORT, 1),
-        Keys::from_values('K', KeyLength::SHORT, 1),
-        Keys::from_values('L', KeyLength::SHORT, 2),
-        Keys::from_values('Z', KeyLength::SHORT, 2),
-        Keys::from_values('X', KeyLength::SHORT, 2),
-        Keys::from_values('C', KeyLength::SHORT, 2),
-        Keys::from_values(' ', KeyLength::LONG, 2),
-        Keys::from_values('V', KeyLength::SHORT, 2),
-        Keys::from_values('B', KeyLength::SHORT, 2),
-        Keys::from_values('N', KeyLength::SHORT, 2),
-        Keys::from_values('M', KeyLength::SHORT, 2),
+        Key::from_values('0', KeyLength::SHORT, 0),
+        Key::from_values('1', KeyLength::SHORT, 0),
+        Key::from_values('2', KeyLength::SHORT, 0),
+        Key::from_values('3', KeyLength::SHORT, 0),
+        Key::from_values('4', KeyLength::SHORT, 0),
+        Key::from_values('5', KeyLength::SHORT, 0),
+        Key::from_values('6', KeyLength::SHORT, 0),
+        Key::from_values('7', KeyLength::SHORT, 0),
+        Key::from_values('8', KeyLength::SHORT, 0),
+        Key::from_values('9', KeyLength::SHORT, 0),
+        Key::from_values('Q', KeyLength::SHORT, 1),
+        Key::from_values('W', KeyLength::SHORT, 1),
+        Key::from_values('E', KeyLength::SHORT, 1),
+        Key::from_values('R', KeyLength::SHORT, 1),
+        Key::from_values('T', KeyLength::SHORT, 1),
+        Key::from_values('Y', KeyLength::SHORT, 1),
+        Key::from_values('U', KeyLength::SHORT, 1),
+        Key::from_values('I', KeyLength::SHORT, 1),
+        Key::from_values('O', KeyLength::SHORT, 1),
+        Key::from_values('P', KeyLength::SHORT, 1),
+        Key::from_values('A', KeyLength::SHORT, 2),
+        Key::from_values('S', KeyLength::SHORT, 2),
+        Key::from_values('D', KeyLength::SHORT, 2),
+        Key::from_values('F', KeyLength::SHORT, 2),
+        Key::from_values('G', KeyLength::SHORT, 2),
+        Key::from_values('H', KeyLength::SHORT, 2),
+        Key::from_values('J', KeyLength::SHORT, 2),
+        Key::from_values('K', KeyLength::SHORT, 2),
+        Key::from_values('L', KeyLength::SHORT, 3),
+        Key::from_values('Z', KeyLength::SHORT, 3),
+        Key::from_values('X', KeyLength::SHORT, 3),
+        Key::from_values('C', KeyLength::SHORT, 3),
+        Key::from_values(' ', KeyLength::LONG, 3),
+        Key::from_values('V', KeyLength::SHORT, 3),
+        Key::from_values('B', KeyLength::SHORT, 3),
+        Key::from_values('N', KeyLength::SHORT, 3),
+        Key::from_values('M', KeyLength::SHORT, 3),
     ]
+}
+
+trait Split {
+    fn from_nums(nums: u32, direction: Direction, rect: Rect) -> Rc<[Rect]>;
+}
+
+impl Split for Constraint {
+    fn from_nums(nums: u32, direction: Direction, rect: Rect) -> Rc<[Rect]> {}
 }
 
 #[derive(Clone, Debug)]
@@ -81,61 +100,38 @@ struct TypingState {
     keypressed: Option<char>,
 }
 
-trait Split {
-    fn from_num(num: u16, rect: Rect, direction: Direction) -> Rc<[Rect]>;
-}
-
-impl Split for Constraint {
-    fn from_num(num: u16, rect: Rect, direction: Direction) -> Rc<[Rect]> {
-        match direction {
-            Direction::Horizontal => Layout::new(
-                Direction::Horizontal,
-                Constraint::from_ratios([
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                    (1, 10),
-                ]),
-            )
-            .split(rect),
-            Direction::Vertical => Layout::new(
-                Direction::Vertical,
-                Constraint::from_lengths([rect.height / num]),
-            )
-            .split(rect),
-        }
-    }
-}
-
 impl TypingState {
     fn get_current_char(&mut self) -> char {
         self.sentence.chars().nth(self.index).unwrap()
     }
 
     fn process_event(&mut self, key_press_event: KeyPressEvent) -> bool {
-        if KeyPressEvent::KeyPress(KeyEvent {
-            code: KeyCode::Esc,
-            modifiers: KeyModifiers::NONE,
-            state: KeyEventState::NONE,
-            kind: KeyEventKind::Press,
-        }) == key_press_event
+        let key_event = match key_press_event {
+            KeyPressEvent::KeyPress(k) => k,
+            KeyPressEvent::NoPress => return false,
+        };
+
+        if key_event
+            == KeyEvent::new_with_kind(KeyCode::Esc, KeyModifiers::NONE, KeyEventKind::Press)
         {
             return true;
-        } else if KeyPressEvent::KeyPress(KeyEvent {
-            code: KeyCode::Char(self.get_current_char()),
-            modifiers: KeyModifiers::NONE,
-            state: KeyEventState::NONE,
-            kind: KeyEventKind::Press,
-        }) == key_press_event
-        {
-            self.index += 1;
+        }
+
+        if key_event.code == KeyCode::from(KeyCode::Char(self.get_current_char())) {
+            self.keypressed = Some(self.get_current_char().clone());
             self.update_color = true;
+            self.index += 1;
+        } else if key_event.code != KeyCode::from(KeyCode::Char(self.get_current_char())) {
+            match key_event.code {
+                KeyCode::Char(c) => {
+                    self.keypressed = Some(c);
+                    self.update_color = false;
+                }
+                _ => {
+                    self.keypressed = None;
+                    self.update_color = false;
+                }
+            }
         }
 
         false
@@ -154,7 +150,11 @@ fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect
     area
 }
 
-fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> Vec<Rc<[Rect]>> {
+fn generate_keyboard_layout(
+    area: Rect,
+    horizontal: Constraint,
+    vertical: Constraint,
+) -> Vec<Rc<[Rect]>> {
     let [area] = Layout::horizontal([horizontal])
         .flex(layout::Flex::Center)
         .areas(area);
@@ -170,14 +170,12 @@ fn render_keyboard(area: Rect, horizontal: Constraint, vertical: Constraint) -> 
     .split(area);
 
     // let us render keys here.
-    render_keys(Rc::clone(&rects))
+    generate_key_layout(Rc::clone(&rects))
 }
 
-fn render_keys(keyboard: Rc<[Rect]>) -> Vec<Rc<[Rect]>> {
+fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Key>) -> Vec<Rc<[Rect]>> {
     let mut v = vec![];
-    for k in keyboard.into_iter() {
-        v.push(Constraint::from_num(10 as u16, *k, Direction::Horizontal));
-    }
+    for k in {}
 
     v
 }
@@ -189,7 +187,7 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         Constraint::Length(4),
     );
 
-    let keyboard = render_keyboard(
+    let keyboard_layers = generate_keyboard_layout(
         frame.size(),
         Constraint::Percentage(75),
         Constraint::Length(frame.size().height / 3 as u16),
@@ -202,7 +200,7 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         frame.render_widget(Block::new().borders(Borders::all()).white(), area);
     }
 
-    for k in keyboard.into_iter() {
+    for k in keyboard_layers.into_iter() {
         for kk in k.into_iter() {
             frame.render_widget(Block::new().borders(Borders::all()), *kk);
         }
@@ -233,7 +231,7 @@ async fn main() -> Result<()> {
         keypressed: None,
     };
 
-    let _keys = initialize_keys();
+    let keys = initialize_keys();
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyPressEvent>();
     let _ = terminal.clear();
     loop {
