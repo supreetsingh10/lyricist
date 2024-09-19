@@ -17,7 +17,7 @@ use ratatui::{
 };
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum KeyLength {
     SHORT,
     MEDIUM,
@@ -29,67 +29,65 @@ enum KeyLength {
 struct Key {
     keychar: char,
     keylength: KeyLength,
-    boxlevel: u16,
 }
 
 impl Key {
-    fn from_values(l_keychar: char, l_keylength: KeyLength, l_boxlevel: u16) -> Self {
+    fn from_values(l_keychar: char, l_keylength: KeyLength) -> Self {
         Key {
             keychar: l_keychar,
             keylength: l_keylength,
-            boxlevel: l_boxlevel,
         }
     }
 }
 
-fn initialize_keys() -> Vec<Key> {
+fn initialize_keys() -> Vec<Vec<Key>> {
     vec![
-        Key::from_values('0', KeyLength::SHORT, 0),
-        Key::from_values('1', KeyLength::SHORT, 0),
-        Key::from_values('2', KeyLength::SHORT, 0),
-        Key::from_values('3', KeyLength::SHORT, 0),
-        Key::from_values('4', KeyLength::SHORT, 0),
-        Key::from_values('5', KeyLength::SHORT, 0),
-        Key::from_values('6', KeyLength::SHORT, 0),
-        Key::from_values('7', KeyLength::SHORT, 0),
-        Key::from_values('8', KeyLength::SHORT, 0),
-        Key::from_values('9', KeyLength::SHORT, 0),
-        Key::from_values('Q', KeyLength::SHORT, 1),
-        Key::from_values('W', KeyLength::SHORT, 1),
-        Key::from_values('E', KeyLength::SHORT, 1),
-        Key::from_values('R', KeyLength::SHORT, 1),
-        Key::from_values('T', KeyLength::SHORT, 1),
-        Key::from_values('Y', KeyLength::SHORT, 1),
-        Key::from_values('U', KeyLength::SHORT, 1),
-        Key::from_values('I', KeyLength::SHORT, 1),
-        Key::from_values('O', KeyLength::SHORT, 1),
-        Key::from_values('P', KeyLength::SHORT, 1),
-        Key::from_values('A', KeyLength::SHORT, 2),
-        Key::from_values('S', KeyLength::SHORT, 2),
-        Key::from_values('D', KeyLength::SHORT, 2),
-        Key::from_values('F', KeyLength::SHORT, 2),
-        Key::from_values('G', KeyLength::SHORT, 2),
-        Key::from_values('H', KeyLength::SHORT, 2),
-        Key::from_values('J', KeyLength::SHORT, 2),
-        Key::from_values('K', KeyLength::SHORT, 2),
-        Key::from_values('L', KeyLength::SHORT, 3),
-        Key::from_values('Z', KeyLength::SHORT, 3),
-        Key::from_values('X', KeyLength::SHORT, 3),
-        Key::from_values('C', KeyLength::SHORT, 3),
-        Key::from_values(' ', KeyLength::LONG, 3),
-        Key::from_values('V', KeyLength::SHORT, 3),
-        Key::from_values('B', KeyLength::SHORT, 3),
-        Key::from_values('N', KeyLength::SHORT, 3),
-        Key::from_values('M', KeyLength::SHORT, 3),
+        vec![
+            Key::from_values('0', KeyLength::SHORT),
+            Key::from_values('1', KeyLength::SHORT),
+            Key::from_values('2', KeyLength::SHORT),
+            Key::from_values('3', KeyLength::SHORT),
+            Key::from_values('4', KeyLength::SHORT),
+            Key::from_values('5', KeyLength::SHORT),
+            Key::from_values('6', KeyLength::SHORT),
+            Key::from_values('7', KeyLength::SHORT),
+            Key::from_values('8', KeyLength::SHORT),
+            Key::from_values('9', KeyLength::SHORT),
+        ],
+        vec![
+            Key::from_values('Q', KeyLength::SHORT),
+            Key::from_values('W', KeyLength::SHORT),
+            Key::from_values('E', KeyLength::SHORT),
+            Key::from_values('R', KeyLength::SHORT),
+            Key::from_values('T', KeyLength::SHORT),
+            Key::from_values('Y', KeyLength::SHORT),
+            Key::from_values('U', KeyLength::SHORT),
+            Key::from_values('I', KeyLength::SHORT),
+            Key::from_values('O', KeyLength::SHORT),
+            Key::from_values('P', KeyLength::SHORT),
+        ],
+        vec![
+            Key::from_values('A', KeyLength::SHORT),
+            Key::from_values('S', KeyLength::SHORT),
+            Key::from_values('D', KeyLength::SHORT),
+            Key::from_values('F', KeyLength::SHORT),
+            Key::from_values('G', KeyLength::SHORT),
+            Key::from_values('H', KeyLength::SHORT),
+            Key::from_values('J', KeyLength::SHORT),
+            Key::from_values('K', KeyLength::SHORT),
+        ],
+        vec![
+            Key::from_values('L', KeyLength::SHORT),
+            Key::from_values('Z', KeyLength::SHORT),
+            Key::from_values('X', KeyLength::SHORT),
+            Key::from_values('C', KeyLength::SHORT),
+            Key::from_values(' ', KeyLength::LONG),
+            Key::from_values('V', KeyLength::SHORT),
+            Key::from_values('B', KeyLength::SHORT),
+            Key::from_values('N', KeyLength::SHORT),
+            Key::from_values('M', KeyLength::SHORT),
+        ],
     ]
-}
-
-trait Split {
-    fn from_nums(nums: u32, direction: Direction, rect: Rect) -> Rc<[Rect]>;
-}
-
-impl Split for Constraint {
-    fn from_nums(nums: u32, direction: Direction, rect: Rect) -> Rc<[Rect]> {}
 }
 
 #[derive(Clone, Debug)]
@@ -154,6 +152,7 @@ fn generate_keyboard_layout(
     area: Rect,
     horizontal: Constraint,
     vertical: Constraint,
+    keys: &Vec<Vec<Key>>,
 ) -> Vec<Rc<[Rect]>> {
     let [area] = Layout::horizontal([horizontal])
         .flex(layout::Flex::Center)
@@ -170,17 +169,35 @@ fn generate_keyboard_layout(
     .split(area);
 
     // let us render keys here.
-    generate_key_layout(Rc::clone(&rects))
+    generate_key_layout(Rc::clone(&rects), keys)
 }
 
-fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Key>) -> Vec<Rc<[Rect]>> {
-    let mut v = vec![];
-    for k in {}
+fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<Rc<[Rect]>> {
+    let mut key_layout: Vec<Rc<[Rect]>> = Vec::new();
 
-    v
+    let mut current_block: u32 = 0;
+    for key_sub_vec in keys.into_iter() {
+        let rat_vec: Vec<(u32, u32)> = key_sub_vec
+            .into_iter()
+            .map(|element| match element.keylength {
+                KeyLength::SHORT => (1 as u32, 10 as u32),
+                KeyLength::MEDIUM => (2 as u32, 10 as u32),
+                KeyLength::LONG => (3 as u32, 10 as u32),
+            })
+            .collect();
+
+        key_layout.push(
+            Layout::new(Direction::Horizontal, Constraint::from_ratios(rat_vec))
+                .split(key_layers[current_block as usize]),
+        );
+
+        current_block += 1;
+    }
+
+    key_layout
 }
 
-fn render(frame: &mut Frame, state: &mut TypingState) {
+fn render(frame: &mut Frame, keys: &Vec<Vec<Key>>, state: &mut TypingState) {
     let area = center_rect(
         frame.size(),
         Constraint::Percentage(70),
@@ -191,6 +208,7 @@ fn render(frame: &mut Frame, state: &mut TypingState) {
         frame.size(),
         Constraint::Percentage(75),
         Constraint::Length(frame.size().height / 3 as u16),
+        keys,
     );
 
     if state.update_color {
@@ -243,7 +261,7 @@ async fn main() -> Result<()> {
         };
 
         let _ = terminal.draw(|f| {
-            render(f, &mut state_struct);
+            render(f, &keys, &mut state_struct);
         });
 
         if quit {
