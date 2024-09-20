@@ -2,7 +2,6 @@ mod keyboard_event;
 use core::panic;
 use std::io::{stdout, Result};
 use std::rc::Rc;
-use std::u16;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use keyboard_event::{handle_keyboard_events, KeyPressEvent};
@@ -17,7 +16,7 @@ use ratatui::{
 };
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum KeyLength {
     SHORT,
     MEDIUM,
@@ -25,7 +24,7 @@ enum KeyLength {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Key {
     keychar: char,
     keylength: KeyLength,
@@ -75,9 +74,9 @@ fn initialize_keys() -> Vec<Vec<Key>> {
             Key::from_values('H', KeyLength::SHORT),
             Key::from_values('J', KeyLength::SHORT),
             Key::from_values('K', KeyLength::SHORT),
+            Key::from_values('L', KeyLength::SHORT),
         ],
         vec![
-            Key::from_values('L', KeyLength::SHORT),
             Key::from_values('Z', KeyLength::SHORT),
             Key::from_values('X', KeyLength::SHORT),
             Key::from_values('C', KeyLength::SHORT),
@@ -168,7 +167,6 @@ fn generate_keyboard_layout(
     )
     .split(area);
 
-    // let us render keys here.
     generate_key_layout(Rc::clone(&rects), keys)
 }
 
@@ -180,9 +178,9 @@ fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<Rc<[
         let rat_vec: Vec<(u32, u32)> = key_sub_vec
             .into_iter()
             .map(|element| match element.keylength {
-                KeyLength::SHORT => (1 as u32, 10 as u32),
-                KeyLength::MEDIUM => (2 as u32, 10 as u32),
-                KeyLength::LONG => (3 as u32, 10 as u32),
+                KeyLength::SHORT => (1_u32, 10_u32),
+                KeyLength::MEDIUM => (2_u32, 10_u32),
+                KeyLength::LONG => (3_u32, 10_u32),
             })
             .collect();
 
@@ -197,8 +195,12 @@ fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<Rc<[
     key_layout
 }
 
-fn render(frame: &mut Frame, keys: &Vec<Vec<Key>>, state: &mut TypingState) {
-    let area = center_rect(
+#[allow(dead_code)]
+struct KeyboardLayout(Rect, Vec<Rc<[Rect]>>);
+
+#[allow(dead_code)]
+fn render_keyboard_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> KeyboardLayout {
+    let text_block = center_rect(
         frame.size(),
         Constraint::Percentage(70),
         Constraint::Length(4),
@@ -207,28 +209,51 @@ fn render(frame: &mut Frame, keys: &Vec<Vec<Key>>, state: &mut TypingState) {
     let keyboard_layers = generate_keyboard_layout(
         frame.size(),
         Constraint::Percentage(75),
-        Constraint::Length(frame.size().height / 3 as u16),
+        Constraint::Length(frame.size().height / 3_u16),
         keys,
     );
 
-    if state.update_color {
-        frame.render_widget(Block::new().borders(Borders::all()).blue(), area);
-    } else {
-        frame.render_widget(Clear, area);
-        frame.render_widget(Block::new().borders(Borders::all()).white(), area);
-    }
+    frame.render_widget(Block::new().borders(Borders::all()), text_block);
 
-    for k in keyboard_layers.into_iter() {
-        for kk in k.into_iter() {
-            frame.render_widget(Block::new().borders(Borders::all()), *kk);
+    frame.render_widget(
+        Paragraph::new(Text::from(String::from(
+            "Welcome to the lyricist, ready to write your songs?",
+        )))
+        .centered(),
+        text_block,
+    );
+
+    for key_layer in keyboard_layers.iter() {
+        for key_rect in key_layer.iter() {
+            frame.render_widget(Block::new().borders(Borders::all()), *key_rect);
         }
     }
 
-    frame.render_widget(
-        Paragraph::new(state.sentence.clone()).block(Block::bordered().title("Test your speed")),
-        area,
-    );
+    for (i, key_sub_vec) in keys.iter().enumerate() {
+        let key_sub_rect = match keyboard_layers.get(i) {
+            Some(r) => r,
+            None => panic!(
+                "Failed to get the required rect, it should exist, please check what is wrong"
+            ),
+        };
+
+        for (key_index, key) in key_sub_vec.iter().enumerate() {
+            let key_rect = key_sub_rect.get(key_index).unwrap();
+            let key_char: String = String::from(key.keychar.to_string());
+
+            frame.render_widget(Paragraph::new(key_char).centered(), *key_rect);
+        }
+    }
+
+    KeyboardLayout(text_block, keyboard_layers)
 }
+
+#[allow(dead_code)]
+fn render_events() {}
+
+// since text would need to be tracked as it would be continously update as the program grows.
+#[allow(dead_code)]
+fn render_text() {}
 
 #[async_std::main]
 async fn main() -> Result<()> {
@@ -249,9 +274,15 @@ async fn main() -> Result<()> {
         keypressed: None,
     };
 
-    let keys = initialize_keys();
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyPressEvent>();
+
     let _ = terminal.clear();
+    let keys = initialize_keys();
+
+    let _ = terminal.draw(|f| {
+        let _ = render_keyboard_layout(f, &keys);
+    });
+
     loop {
         async_std::task::spawn(handle_keyboard_events(sn.clone()));
 
@@ -261,7 +292,7 @@ async fn main() -> Result<()> {
         };
 
         let _ = terminal.draw(|f| {
-            render(f, &keys, &mut state_struct);
+            let _ = render_keyboard_layout(f, &keys);
         });
 
         if quit {
