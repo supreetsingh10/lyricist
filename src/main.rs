@@ -17,7 +17,6 @@ use std::{
     io::{stdout, Result},
 };
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum KeyLength {
     SHORT,
@@ -26,7 +25,7 @@ enum KeyLength {
 }
 
 type Coord = (u32, u32);
-#[allow(dead_code)]
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 struct Key {
     key_code: KeyCode,
@@ -93,7 +92,6 @@ fn initialize_key_vec() -> Vec<Vec<Key>> {
     ]
 }
 
-#[allow(dead_code)]
 fn initialize_key_coord_map() -> HashMap<KeyCode, Coord> {
     HashMap::from([
         (KeyCode::Char('0'), (0, 0)),
@@ -274,10 +272,9 @@ fn render_keyboard_layout(
     frame.render_widget(Block::new().borders(Borders::all()), key_board_layout.0);
 
     frame.render_widget(
-        Paragraph::new(Text::from(String::from(
-            "Welcome to the lyricist, ready to write your songs?",
-        )))
-        .centered(),
+        Paragraph::new("Welcome to lyricist, ready to rock and roll?")
+            .block(Block::new().padding(Padding::top(key_board_layout.0.height / 2)))
+            .centered(),
         key_board_layout.0,
     );
 
@@ -299,13 +296,18 @@ fn render_keyboard_layout(
             let key_rect = key_sub_rect.get(key_index).unwrap();
             let key_char: String = String::from(key.key_code.to_string());
 
-            frame.render_widget(Paragraph::new(key_char).centered(), *key_rect);
+            frame.render_widget(
+                Paragraph::new(key_char)
+                    .block(Block::new().padding(Padding::top(key_rect.height / 2)))
+                    .centered(),
+                *key_rect,
+            );
         }
     }
 }
 
 #[allow(dead_code)]
-fn render_events() {}
+fn render_events(frame: &mut Frame, key_map: &HashMap<KeyCode, Coord>, keys: &Vec<Vec<Key>>) {}
 
 // since text would need to be tracked as it would be continously update as the program grows.
 #[allow(dead_code)]
@@ -335,13 +337,13 @@ async fn main() -> Result<()> {
     let _ = terminal.clear();
 
     let keys = initialize_key_vec();
-    let key_map = initialize_key_coord_map();
+    let _key_map = initialize_key_coord_map();
 
     let keyboard_layout: KeyboardLayout =
         generate_keyboard_layout(&mut terminal.get_frame(), &keys);
 
     let _ = terminal.draw(|f| {
-        let _ = render_keyboard_layout(f, &keyboard_layout, &keys);
+        let _ = render_keyboard_layout(f, &keyboard_layout, &keys.clone());
     });
 
     loop {
@@ -358,7 +360,7 @@ async fn main() -> Result<()> {
     }
 
     if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
-        panic!("Failed to get into Alternate Screen {}", e);
+        panic!("Failed to get into alternate Screen {}", e);
     }
 
     if let Err(e) = disable_raw_mode() {
