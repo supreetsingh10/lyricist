@@ -7,7 +7,7 @@ use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Actions {
     EXIT,
     SEARCH,
@@ -15,10 +15,10 @@ pub enum Actions {
     PAUSE,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Eq, Clone, Copy, PartialEq, Debug)]
 pub struct KeyboardActions {
-    key_event: KeyEvent,
-    action: Actions,
+    pub key_event: KeyEvent,
+    pub action: Actions,
 }
 
 impl KeyboardActions {
@@ -42,7 +42,7 @@ impl KeyboardActions {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum KeyboardEvent {
     KeyPress(KeyboardActions),
     NoPress,

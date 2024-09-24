@@ -1,7 +1,7 @@
 mod keyboard_event;
 use core::panic;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use keyboard_event::{handle_keyboard_events, KeyPressEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use keyboard_event::{handle_keyboard_events, Actions, KeyboardEvent};
 use layout::Layout;
 use ratatui::{
     crossterm::{
@@ -20,7 +20,6 @@ use std::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum KeyLength {
     SHORT,
-    MEDIUM,
     LONG,
 }
 
@@ -132,10 +131,9 @@ fn initialize_key_coord_map() -> HashMap<KeyCode, Coord> {
         (KeyCode::Char('C'), (3, 2)),
         (KeyCode::Char('V'), (3, 3)),
         (KeyCode::Char('_'), (3, 4)),
-        (KeyCode::Char('Z'), (3, 0)),
-        (KeyCode::Char('Z'), (3, 0)),
-        (KeyCode::Char('Z'), (3, 0)),
-        (KeyCode::Char('Z'), (3, 0)),
+        (KeyCode::Char('B'), (3, 5)),
+        (KeyCode::Char('N'), (3, 6)),
+        (KeyCode::Char('M'), (3, 7)),
     ])
 }
 
@@ -143,8 +141,9 @@ fn initialize_key_coord_map() -> HashMap<KeyCode, Coord> {
 struct TypingState {
     sentence: String,
     index: usize,
-    update_color: bool,
-    keypressed: Option<char>,
+    update_text_color: bool,
+    keyboard_event: Option<KeyboardEvent>,
+    correct_hit: bool,
 }
 
 impl TypingState {
@@ -152,36 +151,50 @@ impl TypingState {
         self.sentence.chars().nth(self.index).unwrap()
     }
 
-    fn process_event(&mut self, key_press_event: KeyPressEvent) -> bool {
-        let key_event = match key_press_event {
-            KeyPressEvent::KeyPress(k) => k,
-            KeyPressEvent::NoPress => return false,
-        };
-
-        if key_event
-            == KeyEvent::new_with_kind(KeyCode::Esc, KeyModifiers::NONE, KeyEventKind::Press)
-        {
-            return true;
-        }
-
-        if key_event.code == KeyCode::from(KeyCode::Char(self.get_current_char())) {
-            self.keypressed = Some(self.get_current_char().clone());
-            self.update_color = true;
-            self.index += 1;
-        } else if key_event.code != KeyCode::from(KeyCode::Char(self.get_current_char())) {
-            match key_event.code {
-                KeyCode::Char(c) => {
-                    self.keypressed = Some(c);
-                    self.update_color = false;
+    // timer capability has to be added.
+    fn process_events_or_exit(&mut self, key_press_event: KeyboardEvent) -> bool {
+        match key_press_event {
+            KeyboardEvent::KeyPress(keyboard_actions) => {
+                if keyboard_actions.action == Actions::EXIT {
+                    return true;
                 }
-                _ => {
-                    self.keypressed = None;
-                    self.update_color = false;
+
+                if keyboard_actions.action == Actions::TYPE {
+                    if keyboard_actions.key_event.eq(&KeyEvent::new(
+                        KeyCode::Char(self.get_current_char()),
+                        KeyModifiers::NONE,
+                    )) {
+                        self.correct_hit = true;
+                        self.update_text_color = true;
+                        self.index += 1;
+                        self.keyboard_event = Some(key_press_event);
+                    } else if keyboard_actions.key_event.eq(&KeyEvent::new(
+                        KeyCode::Char(self.get_current_char()),
+                        KeyModifiers::SHIFT,
+                    )) {
+                        self.correct_hit = true;
+                        self.update_text_color = true;
+                        self.index += 1;
+                        self.keyboard_event = Some(key_press_event);
+                    } else {
+                        self.correct_hit = false;
+                        self.update_text_color = true;
+                        self.keyboard_event = Some(key_press_event);
+                    }
+                } else {
+                    self.correct_hit = false;
+                    self.update_text_color = false;
+                    self.keyboard_event = Some(key_press_event);
                 }
+            }
+            KeyboardEvent::NoPress => {
+                self.correct_hit = false;
+                self.update_text_color = false;
+                self.keyboard_event = None;
             }
         }
 
-        false
+        return false;
     }
 }
 
@@ -229,7 +242,6 @@ fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<Rc<[
             .into_iter()
             .map(|element| match element.key_length {
                 KeyLength::SHORT => (1_u32, 10_u32),
-                KeyLength::MEDIUM => (2_u32, 10_u32),
                 KeyLength::LONG => (3_u32, 10_u32),
             })
             .collect();
@@ -328,11 +340,12 @@ async fn main() -> Result<()> {
     let mut state_struct = TypingState {
         sentence: String::from("Rock and roll"),
         index: (0 as usize),
-        update_color: false,
-        keypressed: None,
+        update_text_color: false,
+        keyboard_event: None,
+        correct_hit: false,
     };
 
-    let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyPressEvent>();
+    let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();
 
     let _ = terminal.clear();
 
@@ -350,7 +363,7 @@ async fn main() -> Result<()> {
         async_std::task::spawn(handle_keyboard_events(sn.clone()));
 
         let quit = match rc.recv().await {
-            Ok(rec_eve) => state_struct.process_event(rec_eve),
+            Ok(rec_eve) => state_struct.process_events_or_exit(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
