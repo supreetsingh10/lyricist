@@ -1,11 +1,12 @@
 mod keyboard_event;
 use core::panic;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use keyboard_event::{handle_keyboard_events, Actions, KeyboardEvent};
+use keyboard_event::{handle_keyboard_events, Actions, KeyboardActions, KeyboardEvent};
 use layout::Layout;
 use ratatui::{
     crossterm::{
         execute,
+        style::Color,
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
     },
     prelude::*,
@@ -15,6 +16,7 @@ use std::rc::Rc;
 use std::{
     collections::HashMap,
     io::{stdout, Result},
+    usize,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -142,7 +144,7 @@ struct TypingState {
     sentence: String,
     index: usize,
     update_text_color: bool,
-    keyboard_event: Option<KeyboardEvent>,
+    keyboard_event: Option<KeyboardActions>,
     correct_hit: bool,
 }
 
@@ -151,7 +153,6 @@ impl TypingState {
         self.sentence.chars().nth(self.index).unwrap()
     }
 
-    // timer capability has to be added.
     fn process_events_or_exit(&mut self, key_press_event: KeyboardEvent) -> bool {
         match key_press_event {
             KeyboardEvent::KeyPress(keyboard_actions) => {
@@ -167,7 +168,7 @@ impl TypingState {
                         self.correct_hit = true;
                         self.update_text_color = true;
                         self.index += 1;
-                        self.keyboard_event = Some(key_press_event);
+                        self.keyboard_event = Some(keyboard_actions);
                     } else if keyboard_actions.key_event.eq(&KeyEvent::new(
                         KeyCode::Char(self.get_current_char()),
                         KeyModifiers::SHIFT,
@@ -175,16 +176,16 @@ impl TypingState {
                         self.correct_hit = true;
                         self.update_text_color = true;
                         self.index += 1;
-                        self.keyboard_event = Some(key_press_event);
+                        self.keyboard_event = Some(keyboard_actions);
                     } else {
                         self.correct_hit = false;
                         self.update_text_color = true;
-                        self.keyboard_event = Some(key_press_event);
+                        self.keyboard_event = Some(keyboard_actions);
                     }
                 } else {
                     self.correct_hit = false;
                     self.update_text_color = false;
-                    self.keyboard_event = Some(key_press_event);
+                    self.keyboard_event = Some(keyboard_actions);
                 }
             }
             KeyboardEvent::NoPress => {
@@ -318,8 +319,40 @@ fn render_keyboard_layout(
     }
 }
 
-#[allow(dead_code)]
-fn render_events(frame: &mut Frame, key_map: &HashMap<KeyCode, Coord>, keys: &Vec<Vec<Key>>) {}
+fn render_events(
+    frame: &mut Frame,
+    state_struct: &TypingState,
+    keyboard_layout: &KeyboardLayout,
+    key_map: &HashMap<KeyCode, Coord>,
+) {
+    if let Some(l_key_event) = state_struct.keyboard_event {
+        match l_key_event.action {
+            Actions::EXIT => todo!(),
+            Actions::PAUSE => todo!(),
+            Actions::SEARCH => todo!(),
+            Actions::START => todo!(),
+            Actions::TYPE => {
+                if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {
+                    let r = match keyboard_layout.1.get(l_coord.0 as usize) {
+                        Some(vec_rc) => match vec_rc.get(l_coord.1 as usize) {
+                            Some(r) => r,
+                            None => panic!("Failed to get the key rect the parent vector exists, please check the index"),
+                        }
+                        None => panic!("The Key map is existing but the rect vector layout does not, please check the code"),
+                    };
+
+                    let b = Block::bordered().border_type(BorderType::QuadrantInside);
+
+                    if state_struct.correct_hit {
+                        frame.render_widget(b.style(Style::new()).fg(Color::Green), *r);
+                    } else {
+                        frame.render_widget(b.style(Style::new()).fg(Color::Red), *r);
+                    }
+                }
+            }
+        };
+    }
+}
 
 // since text would need to be tracked as it would be continously update as the program grows.
 #[allow(dead_code)]
@@ -350,7 +383,7 @@ async fn main() -> Result<()> {
     let _ = terminal.clear();
 
     let keys = initialize_key_vec();
-    let _key_map = initialize_key_coord_map();
+    let key_map = initialize_key_coord_map();
 
     let keyboard_layout: KeyboardLayout =
         generate_keyboard_layout(&mut terminal.get_frame(), &keys);
@@ -366,6 +399,10 @@ async fn main() -> Result<()> {
             Ok(rec_eve) => state_struct.process_events_or_exit(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
+
+        let _ = terminal.draw(|f| {
+            render_events(f, &state_struct, &keyboard_layout, &key_map);
+        });
 
         if quit {
             break;

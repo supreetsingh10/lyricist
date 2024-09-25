@@ -10,9 +10,10 @@ use futures_timer::Delay;
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Actions {
     EXIT,
-    SEARCH,
-    TYPE,
     PAUSE,
+    SEARCH,
+    START,
+    TYPE,
 }
 
 #[derive(Eq, Clone, Copy, PartialEq, Debug)]
@@ -36,6 +37,8 @@ impl KeyboardActions {
             return KeyboardActions::new(key_event.to_owned(), Actions::EXIT);
         } else if key_event.eq(&KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL)) {
             return KeyboardActions::new(key_event.to_owned(), Actions::PAUSE);
+        } else if key_event.eq(&KeyEvent::new(KeyCode::Char('g'), KeyModifiers::CONTROL)) {
+            return KeyboardActions::new(key_event.to_owned(), Actions::START);
         } else {
             return KeyboardActions::new(key_event.to_owned(), Actions::TYPE);
         }
