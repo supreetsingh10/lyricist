@@ -1,8 +1,7 @@
 use core::panic;
-use crossterm::event::KeyCode;
 use std::time::Duration;
 
-use crossterm::event::{Event, EventStream, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyModifiers};
 use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
 
@@ -27,6 +26,14 @@ impl KeyboardActions {
         KeyboardActions {
             key_event: kkey_event,
             action: k_action,
+        }
+    }
+
+    pub fn from_char(c: char) -> Self {
+        let k = KeyEvent::from(KeyCode::Char(c));
+        KeyboardActions {
+            key_event: k,
+            action: Actions::TYPE,
         }
     }
 
@@ -55,12 +62,12 @@ pub async fn handle_keyboard_events(sn: async_std::channel::Sender<KeyboardEvent
     let mut event_tapper = EventStream::new();
 
     loop {
-        let mut delay = Delay::new(Duration::from_millis(1_000)).fuse();
+        let mut delay = Delay::new(Duration::from_millis(600)).fuse();
         let mut event = event_tapper.next().fuse();
 
         select! {
             _ = delay => {
-                let _ = sn.send(KeyboardEvent::NoPress);
+                let _ = sn.send(KeyboardEvent::NoPress).await;
             },
             maybe_event = event => {
                 match maybe_event {
