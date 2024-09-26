@@ -1,6 +1,6 @@
 mod keyboard_event;
 use core::panic;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 use keyboard_event::{handle_keyboard_events, Actions, KeyboardActions, KeyboardEvent};
 use layout::Layout;
 use ratatui::{
@@ -41,6 +41,8 @@ impl Key {
         }
     }
 }
+
+const DEBUG: bool = true;
 
 fn initialize_key_vec() -> Vec<Vec<Key>> {
     vec![
@@ -160,27 +162,67 @@ impl TypingState {
                     return true;
                 }
 
+                // this bug has to be fixed where the state and the typed text should have the same
+                // case.
                 if keyboard_actions.action == Actions::TYPE {
-                    if keyboard_actions.key_event.eq(&KeyEvent::new(
-                        KeyCode::Char(self.get_current_char()),
-                        KeyModifiers::NONE,
-                    )) {
+                    let c = &self.get_current_char();
+
+                    if DEBUG {
+                        println!("{:?}", keyboard_actions.key_event.code);
+                    }
+
+                    // if the current char is an uppercase and the keyevent is also the same then
+                    // do this.
+                    if c.is_whitespace()
+                        && keyboard_actions
+                            .key_event
+                            .eq(&KeyEvent::from(KeyCode::Char(*c)))
+                    {
                         self.correct_hit = true;
                         self.update_text_color = true;
                         self.index += 1;
                         self.keyboard_event = Some(keyboard_actions);
-                    } else if keyboard_actions.key_event.eq(&KeyEvent::new(
-                        KeyCode::Char(self.get_current_char()),
-                        KeyModifiers::SHIFT,
-                    )) {
+                    } else if c.is_uppercase()
+                        && keyboard_actions
+                            .key_event
+                            .eq(&KeyEvent::from(KeyCode::Char(*c)))
+                    {
                         self.correct_hit = true;
                         self.update_text_color = true;
                         self.index += 1;
                         self.keyboard_event = Some(keyboard_actions);
+                    }
+                    // if the c is lowercase and the keyevent happens to be a small one we have
+                    // to compare that.
+                    else if c.is_lowercase()
+                        && keyboard_actions
+                            .key_event
+                            .eq(&KeyEvent::from(KeyCode::Char(*c)))
+                    {
+                        self.correct_hit = true;
+                        self.update_text_color = true;
+                        self.index += 1;
+                        // change the keyboard keyboard action to capital because the keycode is
+                        // for the capital characters.
+
+                        let updated_keyboard_action =
+                            KeyboardActions::from_char(c.to_ascii_uppercase());
+                        self.keyboard_event = Some(updated_keyboard_action);
                     } else {
+                        if let KeyEvent {
+                            code: KeyCode::Char(incorrect_key_char),
+                            modifiers: _,
+                            kind: _,
+                            state: _,
+                        } = keyboard_actions.key_event
+                        {
+                            let updated_keyboard_action =
+                                KeyboardActions::from_char(incorrect_key_char.to_ascii_uppercase());
+                            self.keyboard_event = Some(updated_keyboard_action);
+                        }
+
                         self.correct_hit = false;
                         self.update_text_color = true;
-                        self.keyboard_event = Some(keyboard_actions);
                     }
                 } else {
                     self.correct_hit = false;
@@ -285,7 +327,7 @@ fn render_keyboard_layout(
     frame.render_widget(Block::new().borders(Borders::all()), key_board_layout.0);
 
     frame.render_widget(
-        Paragraph::new("Welcome to lyricist, ready to rock and roll?")
+        Paragraph::new("Rock and roll")
             .block(Block::new().padding(Padding::top(key_board_layout.0.height / 2)))
             .centered(),
         key_board_layout.0,
@@ -332,6 +374,10 @@ fn render_events(
             Actions::SEARCH => todo!(),
             Actions::START => todo!(),
             Actions::TYPE => {
+                if DEBUG {
+                    println!("{:?}", l_key_event.key_event);
+                }
+
                 if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {
                     let r = match keyboard_layout.1.get(l_coord.0 as usize) {
                         Some(vec_rc) => match vec_rc.get(l_coord.1 as usize) {
@@ -348,13 +394,16 @@ fn render_events(
                     } else {
                         frame.render_widget(b.style(Style::new()).fg(Color::Red), *r);
                     }
+                } else {
+                    if DEBUG {
+                        println!("Not found");
+                    }
                 }
             }
         };
     }
 }
 
-// since text would need to be tracked as it would be continously update as the program grows.
 #[allow(dead_code)]
 fn render_text() {}
 
@@ -388,20 +437,17 @@ async fn main() -> Result<()> {
     let keyboard_layout: KeyboardLayout =
         generate_keyboard_layout(&mut terminal.get_frame(), &keys);
 
-    let _ = terminal.draw(|f| {
-        let _ = render_keyboard_layout(f, &keyboard_layout, &keys.clone());
-    });
+    async_std::task::spawn(handle_keyboard_events(sn));
 
     loop {
-        async_std::task::spawn(handle_keyboard_events(sn.clone()));
-
         let quit = match rc.recv().await {
             Ok(rec_eve) => state_struct.process_events_or_exit(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
         let _ = terminal.draw(|f| {
-            render_events(f, &state_struct, &keyboard_layout, &key_map);
+            let _ = render_keyboard_layout(f, &keyboard_layout, &keys.clone());
+            let _ = render_events(f, &state_struct, &keyboard_layout, &key_map);
         });
 
         if quit {
@@ -409,8 +455,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
-        panic!("Failed to get into alternate Screen {}", e);
+    if !DEBUG {
+        if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
+            panic!("Failed to get into alternate Screen {}", e);
+        }
     }
 
     if let Err(e) = disable_raw_mode() {
