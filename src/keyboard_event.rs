@@ -5,7 +5,6 @@ use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyModifiers};
 use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
 
-#[allow(dead_code)]
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Actions {
     EXIT,
