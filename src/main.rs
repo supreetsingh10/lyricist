@@ -36,6 +36,9 @@ async fn main() -> Result<()> {
         update_text_color: false,
         keyboard_event: None,
         correct_hit: false,
+        search_request: false,
+        start_typing: false,
+        intro: false,
     };
 
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();

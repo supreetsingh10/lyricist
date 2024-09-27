@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use crossterm::event::KeyCode;
+use std::collections::HashMap;
 
 pub const DEBUG: bool = false;
 

@@ -4,12 +4,17 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::keyboard_event::{Actions, KeyboardActions, KeyboardEvent};
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct TypingState {
     pub sentence: String,
     pub index: usize,
     pub update_text_color: bool,
     pub keyboard_event: Option<KeyboardActions>,
     pub correct_hit: bool,
+
+    pub search_request: bool,
+    pub start_typing: bool,
+    pub intro: bool,
 }
 
 impl TypingState {
@@ -24,8 +29,6 @@ impl TypingState {
                     return true;
                 }
 
-                // this bug has to be fixed where the state and the typed text should have the same
-                // case.
                 if keyboard_actions.action == Actions::TYPE {
                     let c = &self.get_current_char();
 
@@ -90,6 +93,10 @@ impl TypingState {
                         self.correct_hit = false;
                         self.update_text_color = true;
                     }
+                } else if keyboard_actions.action == Actions::SEARCH {
+                    // search request here.build up here
+                } else if keyboard_actions.action == Actions::START {
+                    // the typing starts here.
                 } else {
                     self.correct_hit = false;
                     self.update_text_color = false;
