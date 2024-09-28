@@ -18,7 +18,7 @@ use ratatui::{
     prelude::*,
 };
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> Result<()> {
     if let Err(e) = enable_raw_mode() {
         panic!("Failed to enable raw mode Error: {}", e);
