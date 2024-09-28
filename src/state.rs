@@ -11,7 +11,6 @@ pub struct TypingState {
     pub update_text_color: bool,
     pub keyboard_event: Option<KeyboardActions>,
     pub correct_hit: bool,
-
     pub search_request: bool,
     pub start_typing: bool,
     pub intro: bool,
