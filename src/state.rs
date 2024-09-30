@@ -1,5 +1,6 @@
 use crate::DEBUG;
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::crossterm::event::KeyCode;
 
 use crate::keyboard_event::{Actions, KeyboardActions, KeyboardEvent};
 
@@ -11,7 +12,8 @@ pub struct TypingState {
     pub update_text_color: bool,
     pub keyboard_event: Option<KeyboardActions>,
     pub correct_hit: bool,
-    pub search_request: bool,
+    pub search_flag: bool,
+    pub search_request: Option<String>,
     pub start_typing: bool,
     pub intro: bool,
 }
@@ -28,11 +30,21 @@ impl TypingState {
                     return true;
                 }
 
-                if keyboard_actions.action == Actions::TYPE {
+                if self.search_flag == true {
+                    if keyboard_actions.key_event.code == KeyCode::Enter {
+                        self.search_flag = false;
+                    } else if let KeyCode::Char(x) = keyboard_actions.key_event.code {
+                        if let Some(ref mut s) = self.search_request.as_ref() {
+                            let mut t = s.clone();
+                            t.push(x);
+                            s = String::from(t);
+                        }
+                    }
+                } else if keyboard_actions.action == Actions::TYPE && self.search_flag == false {
                     let c = &self.get_current_char();
 
                     if DEBUG {
-                        println!("{:?}", keyboard_actions.key_event.code);
+                        println!("Type pressed {:?}", keyboard_actions.key_event.code);
                     }
 
                     if c.is_whitespace()
@@ -93,7 +105,7 @@ impl TypingState {
                         self.update_text_color = true;
                     }
                 } else if keyboard_actions.action == Actions::SEARCH {
-                    // search request here.build up here
+                    self.search_flag = true;
                 } else if keyboard_actions.action == Actions::START {
                     // the typing starts here.
                 } else {

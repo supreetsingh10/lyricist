@@ -141,7 +141,7 @@ pub fn render_events(
         match l_key_event.action {
             Actions::EXIT => todo!(),
             Actions::PAUSE => todo!(),
-            Actions::SEARCH => todo!(),
+            Actions::SEARCH => {}
             Actions::START => todo!(),
             Actions::TYPE => {
                 if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {

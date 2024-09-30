@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use std::collections::HashMap;
 
-pub const DEBUG: bool = false;
+pub const DEBUG: bool = true;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum KeyLength {
