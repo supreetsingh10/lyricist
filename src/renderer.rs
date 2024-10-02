@@ -1,4 +1,4 @@
-use crate::keyboard_event::Actions;
+use crate::keyboard_event::States;
 use crate::{constants::*, TypingState};
 use crossterm::event::KeyCode;
 use ratatui::style::{Color, Style};
@@ -138,12 +138,17 @@ pub fn render_events(
     key_map: &HashMap<KeyCode, Coord>,
 ) {
     if let Some(l_key_event) = state_struct.keyboard_event {
-        match l_key_event.action {
-            Actions::EXIT => todo!(),
-            Actions::PAUSE => todo!(),
-            Actions::SEARCH => {}
-            Actions::START => todo!(),
-            Actions::TYPE => {
+        match l_key_event.state {
+            States::SEARCHOFF => {
+                // remove the user input
+            }
+            States::EXIT => todo!(),
+            States::PAUSE => todo!(),
+            States::SEARCH => {
+                // this is where we will be rendering the box and the text inside of it.
+            }
+            States::START => todo!(),
+            States::TYPE => {
                 if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {
                     let r = match keyboard_layout.1.get(l_coord.0 as usize) {
                         Some(vec_rc) => match vec_rc.get(l_coord.1 as usize) {

@@ -6,10 +6,11 @@ use futures::{future::FutureExt, select, StreamExt};
 use futures_timer::Delay;
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
-pub enum Actions {
+pub enum States {
     EXIT,
     PAUSE,
     SEARCH,
+    SEARCHOFF,
     START,
     TYPE,
 }
@@ -17,14 +18,14 @@ pub enum Actions {
 #[derive(Eq, Clone, Copy, PartialEq, Debug)]
 pub struct KeyboardActions {
     pub key_event: KeyEvent,
-    pub action: Actions,
+    pub state: States,
 }
 
 impl KeyboardActions {
-    fn new(kkey_event: KeyEvent, k_action: Actions) -> Self {
+    fn new(kkey_event: KeyEvent, k_action: States) -> Self {
         KeyboardActions {
             key_event: kkey_event,
-            action: k_action,
+            state: k_action,
         }
     }
 
@@ -32,21 +33,38 @@ impl KeyboardActions {
         let k = KeyEvent::from(KeyCode::Char(c));
         KeyboardActions {
             key_event: k,
-            action: Actions::TYPE,
+            state: States::TYPE,
         }
     }
 
-    fn process_keyevent_for_actions(key_event: &KeyEvent) -> Self {
-        if key_event.eq(&KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL)) {
-            return KeyboardActions::new(key_event.to_owned(), Actions::SEARCH);
-        } else if key_event.eq(&KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) {
-            return KeyboardActions::new(key_event.to_owned(), Actions::EXIT);
-        } else if key_event.eq(&KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL)) {
-            return KeyboardActions::new(key_event.to_owned(), Actions::PAUSE);
-        } else if key_event.eq(&KeyEvent::new(KeyCode::Char('g'), KeyModifiers::CONTROL)) {
-            return KeyboardActions::new(key_event.to_owned(), Actions::START);
+    fn process_keyevent_for_actions(key_event: &KeyEvent, state: &mut States) -> Self {
+        if *state == States::SEARCH {
+            if key_event.eq(&KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) {
+                *state = States::SEARCHOFF;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else if key_event.eq(&KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)) {
+                *state = States::SEARCHOFF;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else {
+                *state = States::SEARCH;
+                println!("{:?}", key_event);
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            }
         } else {
-            return KeyboardActions::new(key_event.to_owned(), Actions::TYPE);
+            if key_event.eq(&KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL)) {
+                *state = States::SEARCH;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else if key_event.eq(&KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) {
+                return KeyboardActions::new(key_event.to_owned(), States::EXIT);
+            } else if key_event.eq(&KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL)) {
+                *state = States::PAUSE;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else if key_event.eq(&KeyEvent::new(KeyCode::Char('g'), KeyModifiers::CONTROL)) {
+                *state = States::START;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else {
+                return KeyboardActions::new(key_event.to_owned(), States::TYPE);
+            }
         }
     }
 }
@@ -60,7 +78,9 @@ pub enum KeyboardEvent {
 pub async fn handle_keyboard_events(sn: async_std::channel::Sender<KeyboardEvent>) {
     let mut event_tapper = EventStream::new();
 
+    let mut state: States = States::START;
     loop {
+        // we can have a mutable state thing here. Which will persist between state calls.
         let mut delay = Delay::new(Duration::from_millis(600)).fuse();
         let mut event = event_tapper.next().fuse();
 
@@ -73,7 +93,7 @@ pub async fn handle_keyboard_events(sn: async_std::channel::Sender<KeyboardEvent
                     Some(Ok(event)) => {
                         let _ = match event {
                             Event::Key(k) => {
-                                if let Err(e) = sn.send(KeyboardEvent::KeyPress(KeyboardActions::process_keyevent_for_actions(&k))).await {
+                                if let Err(e) = sn.send(KeyboardEvent::KeyPress(KeyboardActions::process_keyevent_for_actions(&k, &mut state))).await {
                                     panic!("Failed to send {}", e.to_string());
                                 }
                             }
