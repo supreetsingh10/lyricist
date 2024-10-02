@@ -9,108 +9,108 @@ pub struct Root {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Hit {
-    pub highlights: Vec<Value>,
-    pub index: String,
+    pub highlights: Option<Vec<Value>>,
+    pub index: Option<String>,
     #[serde(rename = "type")]
-    pub type_field: String,
+    pub type_field: Option<String>,
     pub result: Result,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Result {
     #[serde(rename = "_type")]
-    pub type_field: String,
-    pub annotation_count: i64,
-    pub api_path: String,
-    pub artist_names: String,
-    pub full_title: String,
-    pub header_image_thumbnail_url: String,
-    pub header_image_url: String,
-    pub id: i64,
+    pub type_field: Option<String>,
+    pub annotation_count: Option<i64>,
+    pub api_path: Option<String>,
+    pub artist_names: Option<String>,
+    pub full_title: Option<String>,
+    pub header_image_thumbnail_url: Option<String>,
+    pub header_image_url: Option<String>,
+    pub id: Option<i64>,
     pub instrumental: bool,
-    pub lyrics_owner_id: i64,
-    pub lyrics_state: String,
-    pub lyrics_updated_at: i64,
-    pub path: String,
-    pub primary_artist_names: String,
-    pub pyongs_count: i64,
-    pub relationships_index_url: String,
-    pub release_date_components: ReleaseDateComponents,
-    pub release_date_for_display: String,
-    pub release_date_with_abbreviated_month_for_display: String,
-    pub song_art_image_thumbnail_url: String,
-    pub song_art_image_url: String,
-    pub stats: Stats,
-    pub title: String,
-    pub title_with_featured: String,
-    pub updated_by_human_at: i64,
-    pub url: String,
+    pub lyrics_owner_id: Option<i64>,
+    pub lyrics_state: Option<String>,
+    pub lyrics_updated_at: Option<i64>,
+    pub path: Option<String>,
+    pub primary_artist_names: Option<String>,
+    pub pyongs_count: Option<i64>,
+    pub relationships_index_url: Option<String>,
+    pub release_date_components: Option<ReleaseDateComponents>,
+    pub release_date_for_display: Option<String>,
+    pub release_date_with_abbreviated_month_for_display: Option<String>,
+    pub song_art_image_thumbnail_url: Option<String>,
+    pub song_art_image_url: Option<String>,
+    pub stats: Option<Stats>,
+    pub title: Option<String>,
+    pub title_with_featured: Option<String>,
+    pub updated_by_human_at: Option<i64>,
+    pub url: Option<String>,
     pub featured_artists: Option<Vec<FeaturedArtist>>,
-    pub primary_artist: PrimaryArtist,
+    pub primary_artist: Option<PrimaryArtist>,
     pub primary_artists: Vec<PrimaryArtist2>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReleaseDateComponents {
-    pub year: i64,
-    pub month: i64,
-    pub day: i64,
+    pub year: Option<i64>,
+    pub month: Option<i64>,
+    pub day: Option<i64>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stats {
-    pub unreviewed_annotations: i64,
+    pub unreviewed_annotations: Option<i64>,
     pub concurrents: Option<i64>,
     pub hot: bool,
-    pub pageviews: i64,
+    pub pageviews: Option<i64>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FeaturedArtist {
     #[serde(rename = "_type")]
-    pub type_field: String,
-    pub api_path: String,
-    pub header_image_url: String,
-    pub id: i64,
-    pub image_url: String,
-    pub index_character: String,
+    pub type_field: Option<String>,
+    pub api_path: Option<String>,
+    pub header_image_url: Option<String>,
+    pub id: Option<i64>,
+    pub image_url: Option<String>,
+    pub index_character: Option<String>,
     pub is_meme_verified: bool,
     pub is_verified: bool,
-    pub name: String,
-    pub slug: String,
-    pub url: String,
+    pub name: Option<String>,
+    pub slug: Option<String>,
+    pub url: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PrimaryArtist {
     #[serde(rename = "_type")]
-    pub type_field: String,
-    pub api_path: String,
-    pub header_image_url: String,
-    pub id: i64,
-    pub image_url: String,
-    pub index_character: String,
+    pub type_field: Option<String>,
+    pub api_path: Option<String>,
+    pub header_image_url: Option<String>,
+    pub id: Option<i64>,
+    pub image_url: Option<String>,
+    pub index_character: Option<String>,
     pub is_meme_verified: bool,
     pub is_verified: bool,
-    pub name: String,
-    pub slug: String,
-    pub url: String,
+    pub name: Option<String>,
+    pub slug: Option<String>,
+    pub url: Option<String>,
     pub iq: Option<i64>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PrimaryArtist2 {
     #[serde(rename = "_type")]
-    pub type_field: String,
-    pub api_path: String,
-    pub header_image_url: String,
-    pub id: i64,
-    pub image_url: String,
-    pub index_character: String,
+    pub type_field: Option<String>,
+    pub api_path: Option<String>,
+    pub header_image_url: Option<String>,
+    pub id: Option<i64>,
+    pub image_url: Option<String>,
+    pub index_character: Option<String>,
     pub is_meme_verified: bool,
     pub is_verified: bool,
-    pub name: String,
-    pub slug: String,
-    pub url: String,
+    pub name: Option<String>,
+    pub slug: Option<String>,
+    pub url: Option<String>,
     pub iq: Option<i64>,
 }
