@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
         update_text_color: false,
         keyboard_event: None,
         correct_hit: false,
-        search_request: false,
+        search_request: None,
         start_typing: false,
         intro: false,
     };
@@ -58,6 +58,8 @@ async fn main() -> Result<()> {
             Ok(rec_eve) => state_struct.process_events_or_exit(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
+
+        // this is where the requests will be made from the requester code.
 
         let _ = terminal.draw(|f| {
             let _ = render_keyboard_layout(f, &keyboard_layout, &keys.clone());
