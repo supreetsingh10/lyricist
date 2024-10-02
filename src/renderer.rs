@@ -11,7 +11,12 @@ use ratatui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub struct KeyboardLayout(Rect, Vec<Rc<[Rect]>>);
+#[allow(dead_code)]
+pub struct AppLayout {
+    text_box: Rect,
+    key_layers: Vec<Rc<[Rect]>>,
+    search_box: Rect,
+}
 
 pub fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
     let [area] = Layout::horizontal([horizontal])
@@ -20,6 +25,18 @@ pub fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> 
 
     let [area] = Layout::vertical([vertical])
         .flex(layout::Flex::Center)
+        .areas(area);
+
+    area
+}
+
+pub fn generate_box(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(layout::Flex::Center)
+        .areas(area);
+
+    let [area] = Layout::vertical([vertical])
+        .flex(layout::Flex::Start)
         .areas(area);
 
     area
@@ -72,45 +89,54 @@ pub fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<
     key_layout
 }
 
-pub fn generate_keyboard_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> KeyboardLayout {
-    let text_block = center_rect(
+pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout {
+    let text_box = center_rect(
         frame.size(),
         Constraint::Percentage(70),
         Constraint::Length(4),
     );
 
-    let keyboard_layers = generate_keyboard(
+    let key_layers = generate_keyboard(
         frame.size(),
         Constraint::Percentage(75),
         Constraint::Length(frame.size().height / 3_u16),
         keys,
     );
 
-    KeyboardLayout(text_block, keyboard_layers)
+    let search_box = generate_box(
+        frame.size(),
+        Constraint::Percentage(30),
+        Constraint::Length(4),
+    );
+
+    AppLayout {
+        text_box,
+        key_layers,
+        search_box,
+    }
 }
 
-pub fn render_keyboard_layout(
-    frame: &mut Frame,
-    key_board_layout: &KeyboardLayout,
-    keys: &Vec<Vec<Key>>,
-) {
-    frame.render_widget(Block::new().borders(Borders::all()), key_board_layout.0);
+pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: &Vec<Vec<Key>>) {
+    frame.render_widget(
+        Block::new().borders(Borders::all()),
+        key_board_layout.text_box,
+    );
 
     frame.render_widget(
         Paragraph::new("Rock and roll")
-            .block(Block::new().padding(Padding::top(key_board_layout.0.height / 2)))
+            .block(Block::new().padding(Padding::top(key_board_layout.text_box.height / 2)))
             .centered(),
-        key_board_layout.0,
+        key_board_layout.text_box,
     );
 
-    for key_layer in key_board_layout.1.iter() {
+    for key_layer in key_board_layout.key_layers.iter() {
         for key_rect in key_layer.iter() {
             frame.render_widget(Block::new().borders(Borders::all()), *key_rect);
         }
     }
 
     for (i, key_sub_vec) in keys.iter().enumerate() {
-        let key_sub_rect = match key_board_layout.1.get(i) {
+        let key_sub_rect = match key_board_layout.key_layers.get(i) {
             Some(r) => r,
             None => panic!(
                 "Failed to get the required rect, it should exist, please check what is wrong"
@@ -134,23 +160,21 @@ pub fn render_keyboard_layout(
 pub fn render_events(
     frame: &mut Frame,
     state_struct: &TypingState,
-    keyboard_layout: &KeyboardLayout,
+    app_layout: &AppLayout,
     key_map: &HashMap<KeyCode, Coord>,
 ) {
-    if let Some(l_key_event) = state_struct.keyboard_event {
+    if let Some(l_key_event) = state_struct.keyboard_actions {
         match l_key_event.state {
             States::SEARCHOFF => {
                 // remove the user input
             }
             States::EXIT => todo!(),
             States::PAUSE => todo!(),
-            States::SEARCH => {
-                // this is where we will be rendering the box and the text inside of it.
-            }
+            States::SEARCH => {}
             States::START => todo!(),
             States::TYPE => {
                 if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {
-                    let r = match keyboard_layout.1.get(l_coord.0 as usize) {
+                    let r = match app_layout.key_layers.get(l_coord.0 as usize) {
                         Some(vec_rc) => match vec_rc.get(l_coord.1 as usize) {
                             Some(r) => r,
                             None => panic!("Failed to get the key rect the parent vector exists, please check the index"),
