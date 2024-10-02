@@ -8,7 +8,7 @@ pub struct TypingState {
     pub sentence: String,
     pub index: usize,
     pub update_text_color: bool,
-    pub keyboard_event: Option<KeyboardActions>,
+    pub keyboard_actions: Option<KeyboardActions>,
     pub correct_hit: bool,
     pub search_request: Option<String>,
     pub start_typing: bool,
@@ -61,6 +61,8 @@ impl TypingState {
                                 self.delete_chars_search_request();
                             }
                         }
+
+                        self.keyboard_actions = Some(keyboard_actions);
                     }
                     States::START => {
                         // First start get a random song lyric.
@@ -76,7 +78,7 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.index += 1;
-                            self.keyboard_event = Some(keyboard_actions);
+                            self.keyboard_actions = Some(keyboard_actions);
                         } else if c.is_uppercase()
                             && keyboard_actions
                                 .key_event
@@ -85,7 +87,7 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.index += 1;
-                            self.keyboard_event = Some(keyboard_actions);
+                            self.keyboard_actions = Some(keyboard_actions);
                         }
                         // if the c is lowercase and the keyevent happens to be a small one we have
                         // to compare that.
@@ -102,16 +104,16 @@ impl TypingState {
 
                             let updated_keyboard_action =
                                 KeyboardActions::from_char(c.to_ascii_uppercase());
-                            self.keyboard_event = Some(updated_keyboard_action);
+                            self.keyboard_actions = Some(updated_keyboard_action);
                         } else {
                             if let KeyCode::Char(in_c) = keyboard_actions.key_event.code {
                                 if in_c.is_whitespace() {
                                     let updated_keyboard_action = KeyboardActions::from_char(' ');
-                                    self.keyboard_event = Some(updated_keyboard_action);
+                                    self.keyboard_actions = Some(updated_keyboard_action);
                                 } else {
                                     let updated_keyboard_action =
                                         KeyboardActions::from_char(in_c.to_ascii_uppercase());
-                                    self.keyboard_event = Some(updated_keyboard_action);
+                                    self.keyboard_actions = Some(updated_keyboard_action);
                                 }
                             }
 
@@ -124,7 +126,7 @@ impl TypingState {
             KeyboardEvent::NoPress => {
                 self.correct_hit = false;
                 self.update_text_color = false;
-                self.keyboard_event = None;
+                self.keyboard_actions = None;
             }
         }
 

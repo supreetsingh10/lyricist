@@ -39,10 +39,7 @@ impl KeyboardActions {
 
     fn process_keyevent_for_actions(key_event: &KeyEvent, state: &mut States) -> Self {
         if *state == States::SEARCH {
-            if key_event.eq(&KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) {
-                *state = States::SEARCHOFF;
-                return KeyboardActions::new(key_event.to_owned(), *state);
-            } else if key_event.eq(&KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)) {
+            if key_event.eq(&KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)) {
                 *state = States::SEARCHOFF;
                 return KeyboardActions::new(key_event.to_owned(), *state);
             } else {
