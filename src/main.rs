@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
         sentence: String::from("Rock and roll"),
         index: (0 as usize),
         update_text_color: false,
-        keyboard_event: None,
+        keyboard_actions: None,
         correct_hit: false,
         search_request: None,
         start_typing: false,
@@ -48,8 +48,7 @@ async fn main() -> Result<()> {
     let keys = initialize_key_vec();
     let key_map = initialize_key_coord_map();
 
-    let keyboard_layout: KeyboardLayout =
-        generate_keyboard_layout(&mut terminal.get_frame(), &keys);
+    let app_layout: AppLayout = generate_app_layout(&mut terminal.get_frame(), &keys);
 
     async_std::task::spawn(handle_keyboard_events(sn));
 
@@ -62,8 +61,8 @@ async fn main() -> Result<()> {
         // this is where the requests will be made from the requester code.
 
         let _ = terminal.draw(|f| {
-            let _ = render_keyboard_layout(f, &keyboard_layout, &keys.clone());
-            let _ = render_events(f, &state_struct, &keyboard_layout, &key_map);
+            let _ = render_app_layout(f, &app_layout, &keys.clone());
+            let _ = render_events(f, &state_struct, &app_layout, &key_map);
         });
 
         if quit {
