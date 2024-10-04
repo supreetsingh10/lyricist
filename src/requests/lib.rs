@@ -8,8 +8,6 @@ pub fn generate_client() -> Result<Client, reqwest::Error> {
 
     let mut header = HeaderMap::new();
 
-    let client_builder = Client::builder();
-
     for (key, vals) in v.iter() {
         if key.eq("x_rapid_api_key") {
             assert!(header
@@ -23,5 +21,5 @@ pub fn generate_client() -> Result<Client, reqwest::Error> {
     }
 
     assert_ne!(header.len(), 0);
-    client_builder.default_headers(header).build()
+    Client::builder().default_headers(header).build()
 }
