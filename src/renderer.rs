@@ -2,6 +2,7 @@ use crate::keyboard_event::States;
 use crate::{constants::*, TypingState};
 use crossterm::event::KeyCode;
 use ratatui::style::{Color, Style};
+use ratatui::text::Text;
 use ratatui::{
     layout::{self, Constraint, Direction, Layout, Rect},
     prelude::Stylize,
@@ -170,7 +171,23 @@ pub fn render_events(
             }
             States::EXIT => todo!(),
             States::PAUSE => todo!(),
-            States::SEARCH => {}
+            States::SEARCH => {
+                match state_struct.search_request_build.clone() {
+                    Some(s) => {
+                        frame.render_widget(
+                            Block::new().borders(Borders::ALL).title("Search"),
+                            app_layout.search_box,
+                        );
+                        frame.render_widget(
+                            Paragraph::new(Text::from(s)).block(Block::new().padding(
+                                Padding::new(5, 5, app_layout.search_box.height / 2 - 1, 0),
+                            )),
+                            app_layout.search_box,
+                        );
+                    }
+                    None => return,
+                }
+            }
             States::START => todo!(),
             States::TYPE => {
                 if let Some(l_coord) = key_map.get(&l_key_event.key_event.code) {
@@ -196,6 +213,25 @@ pub fn render_events(
                 }
             }
         };
+    } else {
+        match state_struct.search_request_build.clone() {
+            Some(s) => {
+                frame.render_widget(
+                    Block::new().borders(Borders::ALL).title("Search"),
+                    app_layout.search_box,
+                );
+                frame.render_widget(
+                    Paragraph::new(Text::from(s)).block(Block::new().padding(Padding::new(
+                        5,
+                        5,
+                        app_layout.search_box.height / 2 - 1,
+                        0,
+                    ))),
+                    app_layout.search_box,
+                );
+            }
+            None => return,
+        }
     }
 }
 
