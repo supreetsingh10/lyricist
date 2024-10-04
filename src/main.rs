@@ -36,7 +36,8 @@ async fn main() -> Result<()> {
         update_text_color: false,
         keyboard_actions: None,
         correct_hit: false,
-        search_request: None,
+        search_request_build: None,
+        search_completed: None,
         start_typing: false,
         intro: false,
     };
@@ -49,7 +50,6 @@ async fn main() -> Result<()> {
     let key_map = initialize_key_coord_map();
 
     let app_layout: AppLayout = generate_app_layout(&mut terminal.get_frame(), &keys);
-
     async_std::task::spawn(handle_keyboard_events(sn));
 
     loop {

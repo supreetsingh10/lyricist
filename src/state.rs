@@ -10,7 +10,8 @@ pub struct TypingState {
     pub update_text_color: bool,
     pub keyboard_actions: Option<KeyboardActions>,
     pub correct_hit: bool,
-    pub search_request: Option<String>,
+    pub search_request_build: Option<String>,
+    pub search_completed: Option<String>,
     pub start_typing: bool,
     pub intro: bool,
 }
@@ -21,28 +22,28 @@ impl TypingState {
     }
 
     pub fn build_search_request(&mut self, c: char) {
-        let mut s = match &self.search_request {
+        let mut s = match &self.search_request_build {
             Some(t) => t.clone(),
             None => String::new(),
         };
 
         s.push(c);
-        self.search_request = Some(s).take();
+        self.search_request_build = Some(s).take();
 
         if DEBUG {
-            println!("{:?}", self.search_request);
+            println!("{:?}", self.search_request_build);
         }
     }
 
     pub fn delete_chars_search_request(&mut self) {
-        if let Some(mut sr) = self.search_request.take().clone() {
+        if let Some(mut sr) = self.search_request_build.take().clone() {
             sr.pop();
 
-            self.search_request = Some(sr).take();
+            self.search_request_build = Some(sr).take();
         }
 
         if DEBUG {
-            println!("Deleted {:?}", self.search_request);
+            println!("Deleted {:?}", self.search_request_build);
         }
     }
 
@@ -50,7 +51,9 @@ impl TypingState {
         match key_press_event {
             KeyboardEvent::KeyPress(keyboard_actions) => {
                 match keyboard_actions.state {
-                    States::SEARCHOFF => {}
+                    States::SEARCHOFF => {
+                        self.search_completed = self.search_request_build.take();
+                    }
                     States::EXIT => return true,
                     States::PAUSE => todo!(),
                     States::SEARCH => {

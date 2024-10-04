@@ -44,7 +44,6 @@ impl KeyboardActions {
                 return KeyboardActions::new(key_event.to_owned(), *state);
             } else {
                 *state = States::SEARCH;
-                println!("{:?}", key_event);
                 return KeyboardActions::new(key_event.to_owned(), *state);
             }
         } else {
