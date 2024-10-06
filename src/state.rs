@@ -14,6 +14,9 @@ pub struct TypingState {
     pub search_completed: Option<String>,
     pub start_typing: bool,
     pub intro: bool,
+
+    pub total_hits: u32,
+    pub correct_hits: u32,
 }
 
 impl TypingState {
@@ -73,11 +76,13 @@ impl TypingState {
                     States::TYPE => {
                         let c = &self.get_current_char();
 
+                        self.total_hits += 1;
                         if c.is_whitespace()
                             && keyboard_actions
                                 .key_event
                                 .eq(&KeyEvent::from(KeyCode::Char(*c)))
                         {
+                            self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.index += 1;
@@ -87,6 +92,7 @@ impl TypingState {
                                 .key_event
                                 .eq(&KeyEvent::from(KeyCode::Char(*c)))
                         {
+                            self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.index += 1;
@@ -99,6 +105,7 @@ impl TypingState {
                                 .key_event
                                 .eq(&KeyEvent::from(KeyCode::Char(*c)))
                         {
+                            self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.index += 1;

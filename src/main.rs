@@ -40,6 +40,8 @@ async fn main() -> Result<()> {
         search_completed: None,
         start_typing: false,
         intro: false,
+        correct_hits: 0,
+        total_hits: 0,
     };
 
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();
@@ -59,7 +61,6 @@ async fn main() -> Result<()> {
         };
 
         // this is where the requests will be made from the requester code.
-
         let _ = terminal.draw(|f| {
             let _ = render_app_layout(f, &app_layout, &keys.clone());
             let _ = render_events(f, &state_struct, &app_layout, &key_map);
