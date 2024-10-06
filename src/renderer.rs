@@ -12,33 +12,26 @@ use ratatui::{
 use std::collections::HashMap;
 use std::rc::Rc;
 
-#[allow(dead_code)]
 pub struct AppLayout {
     text_box: Rect,
     key_layers: Vec<Rc<[Rect]>>,
+    score_box: Rect,
+    timer_box: Rect,
     search_box: Rect,
 }
 
-pub fn center_rect(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+pub fn generate_box(
+    area: Rect,
+    horizontal: Constraint,
+    vertical: Constraint,
+    vertical_flex: layout::Flex,
+    horizontal_flex: layout::Flex,
+) -> Rect {
     let [area] = Layout::horizontal([horizontal])
-        .flex(layout::Flex::Center)
+        .flex(horizontal_flex)
         .areas(area);
 
-    let [area] = Layout::vertical([vertical])
-        .flex(layout::Flex::Center)
-        .areas(area);
-
-    area
-}
-
-pub fn generate_box(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
-    let [area] = Layout::horizontal([horizontal])
-        .flex(layout::Flex::Center)
-        .areas(area);
-
-    let [area] = Layout::vertical([vertical])
-        .flex(layout::Flex::Start)
-        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(vertical_flex).areas(area);
 
     area
 }
@@ -91,12 +84,6 @@ pub fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<
 }
 
 pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout {
-    let text_box = center_rect(
-        frame.size(),
-        Constraint::Percentage(70),
-        Constraint::Length(4),
-    );
-
     let key_layers = generate_keyboard(
         frame.size(),
         Constraint::Percentage(75),
@@ -104,16 +91,44 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         keys,
     );
 
+    let text_box = generate_box(
+        frame.size(),
+        Constraint::Percentage(70),
+        Constraint::Length(4),
+        layout::Flex::Center,
+        layout::Flex::Center,
+    );
+
     let search_box = generate_box(
         frame.size(),
         Constraint::Percentage(30),
         Constraint::Length(4),
+        layout::Flex::Start,
+        layout::Flex::Center,
+    );
+
+    let timer_box = generate_box(
+        frame.size(),
+        Constraint::Percentage(10),
+        Constraint::Length(4),
+        layout::Flex::Start,
+        layout::Flex::Start,
+    );
+
+    let score_box = generate_box(
+        frame.size(),
+        Constraint::Percentage(10),
+        Constraint::Length(4),
+        layout::Flex::Start,
+        layout::Flex::End,
     );
 
     AppLayout {
         text_box,
         key_layers,
         search_box,
+        score_box,
+        timer_box,
     }
 }
 
@@ -166,9 +181,7 @@ pub fn render_events(
 ) {
     if let Some(l_key_event) = state_struct.keyboard_actions {
         match l_key_event.state {
-            States::SEARCHOFF => {
-                // remove the user input
-            }
+            States::SEARCHOFF => {}
             States::EXIT => todo!(),
             States::PAUSE => todo!(),
             States::SEARCH => {
