@@ -145,6 +145,16 @@ pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: 
         key_board_layout.text_box,
     );
 
+    frame.render_widget(
+        Block::new().borders(Borders::ALL),
+        key_board_layout.timer_box,
+    );
+
+    frame.render_widget(
+        Block::new().borders(Borders::ALL),
+        key_board_layout.score_box,
+    );
+
     for key_layer in key_board_layout.key_layers.iter() {
         for key_rect in key_layer.iter() {
             frame.render_widget(Block::new().borders(Borders::all()), *key_rect);

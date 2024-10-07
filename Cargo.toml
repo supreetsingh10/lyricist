@@ -11,6 +11,14 @@ path = "./src/requests/lib.rs"
 name = "req"
 path = "./src/requests/main.rs"
 
+[lib]
+name = "libwatch"
+path = "./src/watch/lib.rs"
+
+[[bin]]
+name = "watch"
+path = "./src/watch/main.rs"
+
 [dependencies]
 async-std = {version = "1", features = ["attributes"]}
 crossterm = {version = "0.28.1", features = ["event-stream"]}
