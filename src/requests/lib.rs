@@ -1,16 +1,21 @@
 use core::future::Future;
 use reqwest::{header::HeaderMap, Client, Error, Response};
+use std::collections::HashMap;
 
 pub trait Lyrics {
     type Out;
-    fn get_lyrics(&self, query: &str) -> impl Future<Output = Self::Out>;
+    fn get_lyrics(&self, query: &HashMap<&str, &str>) -> impl Future<Output = Self::Out>;
 }
 
 impl Lyrics for Client {
     type Out = Result<Response, Error>;
-    async fn get_lyrics(&self, query: &str) -> Result<Response, Error> {
-        self.get("https://genius-song-lyrics1.p.rapidapi.com/search/?per_page=5&page=1")
-            .query(&[("q", query)])
+    // query will be t="Saint And Sinner" a="Saint And Sinners"
+    async fn get_lyrics(&self, query: &HashMap<&str, &str>) -> Result<Response, Error> {
+        self.get("https://musixmatch-lyrics-songs.p.rapidapi.com/songs/lyrics?type=json")
+            .query(&[
+                ("t", query.get("t").unwrap()),
+                ("a", query.get("a").unwrap()),
+            ])
             .send()
             .await
     }
