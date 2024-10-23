@@ -1,10 +1,7 @@
 pub mod response;
 
 use core::future::Future;
-use reqwest::{
-    header::{HeaderMap, CONTENT_TYPE},
-    Client, Error, Response,
-};
+use reqwest::{header::HeaderMap, Client, Error, Response};
 
 // The trailing question mark was an issue lol
 const URL: &str = "https://musixmatch-lyrics-songs.p.rapidapi.com/songs/lyrics";
@@ -26,6 +23,7 @@ impl Lyrics for Client {
 
         let mut q_vec: Vec<(&str, &str)> = Vec::new();
 
+        q_vec.push(("type", "json"));
         for (index, val) in v.iter().enumerate() {
             if val.eq_ignore_ascii_case("t") {
                 let vals = v.get(index + 1).expect("VALUE FAILED");
@@ -47,8 +45,6 @@ pub fn generate_client() -> Result<Client, reqwest::Error> {
         .collect();
 
     let mut header = HeaderMap::new();
-
-    header.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
     for (key, vals) in v.iter() {
         if key.eq("x_rapid_api_key") {
