@@ -18,7 +18,7 @@ use ratatui::{
     prelude::*,
 };
 
-use libreq::{generate_client, response::Root, Lyrics};
+use libreq::{generate_client, response::Root2, Lyrics};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -65,9 +65,8 @@ async fn main() -> Result<()> {
         if let Some(req) = state_struct.search_completed.take() {
             match client.get_lyrics(req.to_owned()).await {
                 // Get the body and the data and then parse it in the ROOT.
-                Ok(resp) => match resp.json::<Root>().await {
+                Ok(resp) => match resp.json::<Vec<Root2>>().await {
                     Ok(j) => {
-                        println!("Syuccess");
                         state_struct.song = Some(j);
                         state_struct.char_index = 0;
                         state_struct.line_index = 0;

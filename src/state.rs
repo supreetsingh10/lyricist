@@ -1,10 +1,10 @@
 use std::{char, usize};
 
 use crate::keyboard_event::{KeyboardActions, KeyboardEvent, States};
-use crate::Root;
 use crate::DEBUG;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use libreq::response::Root2;
 
 #[derive(Clone, Debug)]
 pub struct TypingState {
@@ -17,7 +17,7 @@ pub struct TypingState {
     pub total_hits: u32,
     pub correct_hits: u32,
 
-    pub song: Option<Root>,
+    pub song: Option<Vec<Root2>>,
     pub line_index: usize,
     pub char_index: usize,
 }
