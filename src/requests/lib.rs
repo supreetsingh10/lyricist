@@ -1,9 +1,14 @@
-use core::future::Future;
-use reqwest::{header::HeaderMap, Client, Error, Response};
-use std::collections::HashMap;
 pub mod response;
 
-const URL: &str = "https://musixmatch-lyrics-songs.p.rapidapi.com/songs/lyrics?type=json";
+use core::future::Future;
+use reqwest::{
+    header::{HeaderMap, CONTENT_TYPE},
+    Client, Error, Response,
+};
+
+// The trailing question mark was an issue lol
+const URL: &str = "https://musixmatch-lyrics-songs.p.rapidapi.com/songs/lyrics";
+
 pub trait Lyrics {
     type Out;
     fn get_lyrics(&self, query: String) -> impl Future<Output = Self::Out>;
@@ -11,21 +16,27 @@ pub trait Lyrics {
 
 impl Lyrics for Client {
     type Out = Result<Response, Error>;
-    async fn get_lyrics(&self, query: String) -> Result<Response, Error> {
-        let mut query_m: HashMap<&str, &str> = HashMap::new();
-        let _ = query.split(',').map(|elems| {
-            let split_req: Vec<&str> = elems.split(':').collect();
-            assert_eq!(split_req.len(), 2);
-            query_m.insert(split_req[0], split_req[1]);
-        });
 
-        self.get(URL)
-            .query(&[
-                ("t", query_m.get("t").unwrap()),
-                ("a", query_m.get("a").unwrap()),
-            ])
-            .send()
-            .await
+    async fn get_lyrics(&self, query: String) -> Result<Response, Error> {
+        let v: Vec<&str> = query
+            .split(',')
+            .into_iter()
+            .flat_map(|s| s.trim().split(':'))
+            .collect();
+
+        let mut q_vec: Vec<(&str, &str)> = Vec::new();
+
+        for (index, val) in v.iter().enumerate() {
+            if val.eq_ignore_ascii_case("t") {
+                let vals = v.get(index + 1).expect("VALUE FAILED");
+                q_vec.push(("t", vals.trim()));
+            } else if val.eq_ignore_ascii_case("a") {
+                let vals = v.get(index + 1).expect("VALUE FAILED");
+                q_vec.push(("a", vals.trim()));
+            }
+        }
+
+        self.get(URL).query(&q_vec).send().await
     }
 }
 
@@ -36,6 +47,8 @@ pub fn generate_client() -> Result<Client, reqwest::Error> {
         .collect();
 
     let mut header = HeaderMap::new();
+
+    header.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
     for (key, vals) in v.iter() {
         if key.eq("x_rapid_api_key") {

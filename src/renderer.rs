@@ -139,13 +139,6 @@ pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: 
     );
 
     frame.render_widget(
-        Paragraph::new("Rock and roll")
-            .block(Block::new().padding(Padding::top(key_board_layout.text_box.height / 2)))
-            .centered(),
-        key_board_layout.text_box,
-    );
-
-    frame.render_widget(
         Block::new().borders(Borders::ALL),
         key_board_layout.timer_box,
     );
@@ -259,4 +252,15 @@ pub fn render_events(
 }
 
 #[allow(dead_code)]
-fn render_text() {}
+pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &AppLayout) {
+    match state_struct.get_current_line() {
+        Some(lyric) => frame.render_widget(
+            Paragraph::new(Text::from(lyric)).block(Block::new()),
+            app_layout.text_box,
+        ),
+        None => frame.render_widget(
+            Paragraph::new(Text::from("Song completed")).block(Block::new()),
+            app_layout.text_box,
+        ),
+    };
+}

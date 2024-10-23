@@ -18,11 +18,7 @@ use ratatui::{
     prelude::*,
 };
 
-use libreq::{
-    generate_client,
-    response::{Root, SEARCH},
-    Lyrics,
-};
+use libreq::{generate_client, response::Root, Lyrics};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,16 +34,16 @@ async fn main() -> Result<()> {
 
     let mut state_struct = TypingState {
         sentence: String::from("Ready for the test?"),
-        index: (0 as usize),
         update_text_color: false,
         keyboard_actions: None,
         correct_hit: false,
         search_request_build: None,
         search_completed: None,
-        start_typing: false,
-        intro: false,
         correct_hits: 0,
         total_hits: 0,
+        song: None,
+        line_index: 0 as usize,
+        char_index: 0 as usize,
     };
 
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();
@@ -65,23 +61,35 @@ async fn main() -> Result<()> {
     let app_layout: AppLayout = generate_app_layout(&mut terminal.get_frame(), &keys);
     async_std::task::spawn(handle_keyboard_events(sn));
 
-    type SearchResult = SEARCH;
     loop {
+        if let Some(req) = state_struct.search_completed.take() {
+            match client.get_lyrics(req.to_owned()).await {
+                // Get the body and the data and then parse it in the ROOT.
+                Ok(resp) => match resp.json::<Root>().await {
+                    Ok(j) => {
+                        println!("Syuccess");
+                        state_struct.song = Some(j);
+                        state_struct.char_index = 0;
+                        state_struct.line_index = 0;
+                    }
+                    Err(e) => panic!("Failed to deserialize the struct {}", e.to_string()),
+                },
+                Err(e) => {
+                    panic!("Failed to get the request {}", e.to_string());
+                }
+            };
+        }
+
         let quit = match rc.recv().await {
             Ok(rec_eve) => state_struct.process_events_or_exit(rec_eve),
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
-        if let Some(req) = state_struct.search_completed.as_ref() {
-            match client.get_lyrics(req.to_owned()).await {
-                Ok(r) => r.json::<Root>().await,
-                Err(e) => SearchResult(e.to_string()),
-            }
-        }
         // this is where the requests will be made from the requester code.
         let _ = terminal.draw(|f| {
             let _ = render_app_layout(f, &app_layout, &keys.clone());
             let _ = render_events(f, &state_struct, &app_layout, &key_map);
+            let _ = render_text(f, &state_struct, &app_layout);
         });
 
         if quit {

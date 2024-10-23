@@ -1,32 +1,26 @@
 mod response;
 
 use core::panic;
-use libreq::generate_client;
-use libreq::Lyrics;
-use response::Root;
-use std::collections::HashMap;
 
-use std::io::Result;
+use libreq::{generate_client, response::Root2, Lyrics};
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let client = match generate_client() {
-        Ok(c) => c,
-        Err(e) => panic!("Failed to generate the client {}", e.to_string()),
+async fn main() {
+    let c = generate_client().unwrap();
+
+    let r = match c
+        .get_lyrics(String::from("t: paranoid, a: blacksabbath"))
+        .await
+    {
+        Ok(s) => {
+            println!("{:?}", s);
+            match s.json::<Vec<Root2>>().await {
+                Ok(j) => j,
+                Err(e) => panic!("JSON failed {}", e.to_string()),
+            }
+        }
+        Err(e) => panic!("WHAT THE FUCK {}", e),
     };
 
-    let mut hmap: HashMap<&str, &str> = HashMap::new();
-    hmap.insert("t", "n.i.b.");
-    hmap.insert("a", "Black Sabbath");
-    let j = client
-        .get_lyrics(&hmap)
-        .await
-        .unwrap()
-        .json::<Root>()
-        .await
-        .unwrap();
-
-    println!("{:?}", j);
-
-    Ok(())
+    println!("{:?}", r);
 }
