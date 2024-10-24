@@ -18,7 +18,7 @@ use ratatui::{
     prelude::*,
 };
 
-use libreq::{generate_client, response::Root2, Lyrics};
+use libreq::{generate_client, response::Song, Lyrics};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -33,7 +33,6 @@ async fn main() -> Result<()> {
         };
 
     let mut state_struct = TypingState {
-        sentence: String::from("Ready for the test?"),
         update_text_color: false,
         keyboard_actions: None,
         correct_hit: false,
@@ -42,8 +41,6 @@ async fn main() -> Result<()> {
         correct_hits: 0,
         total_hits: 0,
         song: None,
-        line_index: 0 as usize,
-        char_index: 0 as usize,
     };
 
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();
@@ -65,11 +62,9 @@ async fn main() -> Result<()> {
         if let Some(req) = state_struct.search_completed.take() {
             match client.get_lyrics(req.to_owned()).await {
                 // Get the body and the data and then parse it in the ROOT.
-                Ok(resp) => match resp.json::<Vec<Root2>>().await {
-                    Ok(j) => {
-                        state_struct.song = Some(j);
-                        state_struct.char_index = 0;
-                        state_struct.line_index = 0;
+                Ok(resp) => match resp.json::<Song>().await {
+                    Ok(song) => {
+                        state_struct.song = Some(song);
                     }
                     Err(e) => panic!("Failed to deserialize the struct {}", e.to_string()),
                 },

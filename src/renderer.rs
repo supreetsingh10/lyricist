@@ -253,14 +253,8 @@ pub fn render_events(
 
 #[allow(dead_code)]
 pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &AppLayout) {
-    match state_struct.get_current_line() {
-        Some(lyric) => frame.render_widget(
-            Paragraph::new(Text::from(lyric)).block(Block::new()),
-            app_layout.text_box,
-        ),
-        None => frame.render_widget(
-            Paragraph::new(Text::from("Song completed")).block(Block::new()),
-            app_layout.text_box,
-        ),
-    };
+    frame.render_widget(
+        Paragraph::new(state_struct.get_sentence()..clone()),
+        app_layout.text_box,
+    );
 }

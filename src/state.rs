@@ -1,14 +1,13 @@
-use std::{char, usize};
+use std::char;
 
 use crate::keyboard_event::{KeyboardActions, KeyboardEvent, States};
 use crate::DEBUG;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use libreq::response::Root2;
+use libreq::response::Song;
 
 #[derive(Clone, Debug)]
 pub struct TypingState {
-    pub sentence: String,
     pub update_text_color: bool,
     pub keyboard_actions: Option<KeyboardActions>,
     pub correct_hit: bool,
@@ -17,46 +16,22 @@ pub struct TypingState {
     pub total_hits: u32,
     pub correct_hits: u32,
 
-    pub song: Option<Vec<Root2>>,
-    pub line_index: usize,
-    pub char_index: usize,
+    pub song: Option<Song>,
 }
 
 impl TypingState {
-    pub fn get_current_line(&self) -> Option<String> {
-        let song = match self.song.as_ref() {
-            Some(song) => song,
-            None => return None,
-        };
-
-        if let Some(s) = song.get(self.line_index) {
-            Some(s.text.clone())
-        } else {
-            None
-        }
+    pub fn get_sentence(&self) -> Option<&str> {
+        self.song
+            .as_ref()
+            .map_or(None, |s| Some(s.get_sentence_ref()))
     }
 
-    fn get_current_char(&mut self) -> Option<char> {
-        // if nth character does not exist, then go to the next line and check
-        self.sentence
-            .chars()
-            .nth(self.char_index)
-            .map(|c| {
-                self.char_index += 1;
-                c
-            })
-            .or_else(|| {
-                self.line_index += 1;
-                self.song
-                    .as_ref()
-                    .unwrap()
-                    .get(self.line_index)
-                    .map(|l| {
-                        self.char_index = 0;
-                        l.text.chars().nth(self.char_index).unwrap()
-                    })
-                    .or_else(|| None)
-            })
+    pub fn get_current_char(&self) -> Option<char> {
+        if let Some(s) = self.song.as_ref() {
+            return s.get_current_char();
+        }
+
+        None
     }
 
     fn build_search_request(&mut self, c: char) {
@@ -124,7 +99,10 @@ impl TypingState {
                             self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
-                            self.line_index += 1;
+
+                            if self.song.is_some() {
+                                self.song.as_mut().unwrap().update_sentence();
+                            }
                             self.keyboard_actions = Some(keyboard_actions);
                         } else if c.is_uppercase()
                             && keyboard_actions
@@ -134,7 +112,10 @@ impl TypingState {
                             self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
-                            self.line_index += 1;
+
+                            if self.song.is_some() {
+                                self.song.as_mut().unwrap().update_sentence();
+                            }
                             self.keyboard_actions = Some(keyboard_actions);
                         }
                         // if the c is lowercase and the keyevent happens to be a small one we have
@@ -147,9 +128,10 @@ impl TypingState {
                             self.correct_hits += 1;
                             self.correct_hit = true;
                             self.update_text_color = true;
-                            self.line_index += 1;
-                            // change the keyboard keyboard state to capital because the keycode is
-                            // for the capital characters.
+
+                            if self.song.is_some() {
+                                self.song.as_mut().unwrap().update_sentence();
+                            }
 
                             let updated_keyboard_action =
                                 KeyboardActions::from_char(c.to_ascii_uppercase());
