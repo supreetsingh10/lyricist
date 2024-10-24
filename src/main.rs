@@ -18,7 +18,11 @@ use ratatui::{
     prelude::*,
 };
 
-use libreq::{generate_client, response::Song, Lyrics};
+use libreq::{
+    generate_client,
+    response::{Root, Song},
+    Lyrics,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -62,9 +66,9 @@ async fn main() -> Result<()> {
         if let Some(req) = state_struct.search_completed.take() {
             match client.get_lyrics(req.to_owned()).await {
                 // Get the body and the data and then parse it in the ROOT.
-                Ok(resp) => match resp.json::<Song>().await {
-                    Ok(song) => {
-                        state_struct.song = Some(song);
+                Ok(resp) => match resp.json::<Root>().await {
+                    Ok(root) => {
+                        state_struct.song = Some(Song::new(root));
                     }
                     Err(e) => panic!("Failed to deserialize the struct {}", e.to_string()),
                 },
