@@ -65,16 +65,11 @@ async fn main() -> Result<()> {
     loop {
         if let Some(req) = state_struct.search_completed.take() {
             match client.get_lyrics(req.to_owned()).await {
-                // Get the body and the data and then parse it in the ROOT.
                 Ok(resp) => match resp.json::<Root>().await {
-                    Ok(root) => {
-                        state_struct.song = Some(Song::new(root));
-                    }
+                    Ok(root) => state_struct.song = Some(Song::new(root)),
                     Err(e) => panic!("Failed to deserialize the struct {}", e.to_string()),
                 },
-                Err(e) => {
-                    panic!("Failed to get the request {}", e.to_string());
-                }
+                Err(e) => panic!("Failed to get the request {}", e.to_string()),
             };
         }
 
@@ -83,11 +78,10 @@ async fn main() -> Result<()> {
             Err(e) => panic!("Failed to recieve the keyboard event, {}", e.to_string()),
         };
 
-        // this is where the requests will be made from the requester code.
         let _ = terminal.draw(|f| {
-            let _ = render_app_layout(f, &app_layout, &keys.clone());
-            let _ = render_events(f, &state_struct, &app_layout, &key_map);
-            let _ = render_text(f, &state_struct, &app_layout);
+            render_app_layout(f, &app_layout, &keys.clone());
+            render_events(f, &state_struct, &app_layout, &key_map);
+            render_text(f, &state_struct, &app_layout);
         });
 
         if quit {

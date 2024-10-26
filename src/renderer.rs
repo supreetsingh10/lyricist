@@ -52,7 +52,7 @@ pub fn generate_keyboard(
 
     let rects = Layout::new(
         Direction::Vertical,
-        Constraint::from_percentages([25, 25, 25, 25]),
+        Constraint::from_percentages([25, 25, 25, 25, 25]),
     )
     .split(area);
 
@@ -65,9 +65,10 @@ pub fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<
     let mut current_block: u32 = 0;
     for key_sub_vec in keys.into_iter() {
         let rat_vec: Vec<(u32, u32)> = key_sub_vec
-            .into_iter()
+            .iter()
             .map(|element| match element.key_length {
                 KeyLength::SHORT => (1_u32, 10_u32),
+                KeyLength::MEDIUM => (2_u32, 10_u32),
                 KeyLength::LONG => (3_u32, 10_u32),
             })
             .collect();
@@ -86,14 +87,14 @@ pub fn generate_key_layout(key_layers: Rc<[Rect]>, keys: &Vec<Vec<Key>>) -> Vec<
 pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout {
     let key_layers = generate_keyboard(
         frame.size(),
-        Constraint::Percentage(75),
+        Constraint::Percentage(KEYBOARD_PERCENTAGE),
         Constraint::Length(frame.size().height / 3_u16),
         keys,
     );
 
     let text_box = generate_box(
         frame.size(),
-        Constraint::Percentage(70),
+        Constraint::Percentage(TEXT_BOX_PERCENTAGE),
         Constraint::Length(4),
         layout::Flex::Center,
         layout::Flex::Center,
@@ -101,7 +102,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
 
     let search_box = generate_box(
         frame.size(),
-        Constraint::Percentage(30),
+        Constraint::Percentage(SEARCH_BOX_PERCENTAGE),
         Constraint::Length(4),
         layout::Flex::Start,
         layout::Flex::Center,
@@ -109,7 +110,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
 
     let timer_box = generate_box(
         frame.size(),
-        Constraint::Percentage(10),
+        Constraint::Percentage(TIMER_BOX_PERCENTAGE),
         Constraint::Length(4),
         layout::Flex::Start,
         layout::Flex::Start,
@@ -117,7 +118,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
 
     let score_box = generate_box(
         frame.size(),
-        Constraint::Percentage(10),
+        Constraint::Percentage(SCORE_BOX_PERCENTAGE),
         Constraint::Length(4),
         layout::Flex::Start,
         layout::Flex::End,
@@ -132,7 +133,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
     }
 }
 
-pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: &Vec<Vec<Key>>) {
+pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: &[Vec<Key>]) {
     frame.render_widget(
         Block::new().borders(Borders::all()),
         key_board_layout.text_box,
@@ -164,14 +165,25 @@ pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: 
 
         for (key_index, key) in key_sub_vec.iter().enumerate() {
             let key_rect = key_sub_rect.get(key_index).unwrap();
-            let key_char: String = String::from(key.key_code.to_string());
-
+            let key_char: String = key.key_code.to_string();
             frame.render_widget(
                 Paragraph::new(key_char)
                     .block(Block::new().padding(Padding::top(key_rect.height / 2)))
                     .centered(),
                 *key_rect,
             );
+
+            key.sec_key_code.map(|sc| {
+                frame.render_widget(
+                    Paragraph::new(sc.to_string()).block(Block::new().padding(Padding::new(
+                        2,
+                        0,
+                        key_rect.height / 3,
+                        0,
+                    ))),
+                    *key_rect,
+                );
+            });
         }
     }
 }
@@ -201,7 +213,7 @@ pub fn render_events(
                             app_layout.search_box,
                         );
                     }
-                    None => return,
+                    None => (),
                 }
             }
             States::START => todo!(),
@@ -246,15 +258,25 @@ pub fn render_events(
                     app_layout.search_box,
                 );
             }
-            None => return,
+            None => (),
         }
     }
 }
 
-#[allow(dead_code)]
+// I will need a state for the whole thing to render stuff.
 pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &AppLayout) {
-    frame.render_widget(
-        Paragraph::new(state_struct.get_sentence()..clone()),
-        app_layout.text_box,
-    );
+    match state_struct.get_sentence() {
+        Some(s) => frame.render_widget(
+            Paragraph::new(s)
+                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                .centered(),
+            app_layout.text_box,
+        ),
+        None => frame.render_widget(
+            Paragraph::new("Song completed")
+                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                .centered(),
+            app_layout.text_box,
+        ),
+    }
 }

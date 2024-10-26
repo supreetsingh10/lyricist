@@ -1,7 +1,6 @@
 use std::char;
 
 use crate::keyboard_event::{KeyboardActions, KeyboardEvent, States};
-use crate::DEBUG;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use libreq::response::Song;
@@ -21,9 +20,7 @@ pub struct TypingState {
 
 impl TypingState {
     pub fn get_sentence(&self) -> Option<&str> {
-        self.song
-            .as_ref()
-            .map_or(None, |s| Some(s.get_sentence_ref()))
+        self.song.as_ref().map(|s| s.get_sentence_ref())
     }
 
     pub fn get_current_char(&self) -> Option<char> {
@@ -42,10 +39,6 @@ impl TypingState {
 
         s.push(c);
         self.search_request_build = Some(s).take();
-
-        if DEBUG {
-            println!("{:?}", self.search_request_build);
-        }
     }
 
     fn delete_chars_search_request(&mut self) {
@@ -53,10 +46,6 @@ impl TypingState {
             sr.pop();
 
             self.search_request_build = Some(sr).take();
-        }
-
-        if DEBUG {
-            println!("Deleted {:?}", self.search_request_build);
         }
     }
 
@@ -86,7 +75,7 @@ impl TypingState {
                     States::TYPE => {
                         // if current character is null this means the song is over.
                         let c = match &self.get_current_char() {
-                            Some(c) => c.clone(),
+                            Some(c) => *c,
                             None => return false,
                         };
 
@@ -100,9 +89,8 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
 
-                            if self.song.is_some() {
-                                self.song.as_mut().unwrap().update_sentence();
-                            }
+                            self.song.as_mut().map(|s| s.update_sentence());
+
                             self.keyboard_actions = Some(keyboard_actions);
                         } else if c.is_uppercase()
                             && keyboard_actions
@@ -113,9 +101,7 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
 
-                            if self.song.is_some() {
-                                self.song.as_mut().unwrap().update_sentence();
-                            }
+                            self.song.as_mut().map(|s| s.update_sentence());
                             self.keyboard_actions = Some(keyboard_actions);
                         }
                         // if the c is lowercase and the keyevent happens to be a small one we have
@@ -129,21 +115,22 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
 
-                            if self.song.is_some() {
-                                self.song.as_mut().unwrap().update_sentence();
-                            }
+                            self.song.as_mut().map(|s| s.update_sentence());
 
                             let updated_keyboard_action =
                                 KeyboardActions::from_char(c.to_ascii_uppercase());
                             self.keyboard_actions = Some(updated_keyboard_action);
                         } else {
-                            if let KeyCode::Char(in_c) = keyboard_actions.key_event.code {
-                                if in_c.is_whitespace() {
+                            if let KeyCode::Char(incorrect_typed_char) =
+                                keyboard_actions.key_event.code
+                            {
+                                if incorrect_typed_char.is_whitespace() {
                                     let updated_keyboard_action = KeyboardActions::from_char(' ');
                                     self.keyboard_actions = Some(updated_keyboard_action);
                                 } else {
-                                    let updated_keyboard_action =
-                                        KeyboardActions::from_char(in_c.to_ascii_uppercase());
+                                    let updated_keyboard_action = KeyboardActions::from_char(
+                                        incorrect_typed_char.to_ascii_uppercase(),
+                                    );
                                     self.keyboard_actions = Some(updated_keyboard_action);
                                 }
                             }
@@ -161,6 +148,6 @@ impl TypingState {
             }
         }
 
-        return false;
+        false
     }
 }

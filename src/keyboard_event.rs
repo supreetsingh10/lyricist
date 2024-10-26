@@ -76,7 +76,6 @@ pub async fn handle_keyboard_events(sn: async_std::channel::Sender<KeyboardEvent
 
     let mut state: States = States::START;
     loop {
-        // we can have a mutable state thing here. Which will persist between state calls.
         let mut delay = Delay::new(Duration::from_millis(600)).fuse();
         let mut event = event_tapper.next().fuse();
 

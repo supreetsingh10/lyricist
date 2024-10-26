@@ -1,5 +1,3 @@
-use std::usize;
-
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
@@ -29,20 +27,20 @@ pub struct Song {
 }
 
 pub enum SongStatus {
-    COMPLETED,
+    Completed,
     NextLine,
-    CONTINUING,
+    Continuing,
 }
 
 impl Song {
     pub fn get_sentence_ref(&self) -> &str {
-        &self.sentence.as_str()
+        self.sentence.as_str()
     }
 
     pub fn new(s: Root) -> Self {
         Song {
             song: s.clone(),
-            sentence: s.get(0).unwrap().text.to_owned(),
+            sentence: s.first().unwrap().text.to_owned(),
             line_index: 0,
             cur_loc: 0,
         }
@@ -52,13 +50,12 @@ impl Song {
         self.sentence.chars().nth(self.cur_loc as usize)
     }
 
-    // this will be updating the sentence that has to be rendered.
     pub fn update_sentence(&mut self) -> SongStatus {
         self.cur_loc += 1;
 
-        if (self.cur_loc as usize) <= self.sentence.len() {
+        if (self.cur_loc as usize) >= self.sentence.len() {
             if (self.line_index as usize) >= self.song.len() {
-                return SongStatus::COMPLETED;
+                return SongStatus::Completed;
             } else {
                 self.line_index += 1;
                 self.cur_loc = 0;
@@ -73,6 +70,6 @@ impl Song {
             }
         }
 
-        SongStatus::CONTINUING
+        SongStatus::Continuing
     }
 }
