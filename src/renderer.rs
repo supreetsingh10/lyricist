@@ -1,6 +1,7 @@
 use crate::keyboard_event::States;
 use crate::{constants::*, TypingState};
 use crossterm::event::KeyCode;
+use libreq::response::SongStatus;
 use ratatui::style::{Color, Style};
 use ratatui::text::Text;
 use ratatui::{
@@ -15,8 +16,8 @@ use std::rc::Rc;
 pub struct AppLayout {
     text_box: Rect,
     key_layers: Vec<Rc<[Rect]>>,
-    score_box: Rect,
-    timer_box: Rect,
+    total_score: Rect,
+    correct_hits_display: Rect,
     search_box: Rect,
 }
 
@@ -108,7 +109,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         layout::Flex::Center,
     );
 
-    let timer_box = generate_box(
+    let correct_hits_display = generate_box(
         frame.size(),
         Constraint::Percentage(TIMER_BOX_PERCENTAGE),
         Constraint::Length(4),
@@ -116,7 +117,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         layout::Flex::Start,
     );
 
-    let score_box = generate_box(
+    let total_score = generate_box(
         frame.size(),
         Constraint::Percentage(SCORE_BOX_PERCENTAGE),
         Constraint::Length(4),
@@ -128,8 +129,8 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         text_box,
         key_layers,
         search_box,
-        score_box,
-        timer_box,
+        total_score,
+        correct_hits_display,
     }
 }
 
@@ -141,12 +142,12 @@ pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: 
 
     frame.render_widget(
         Block::new().borders(Borders::ALL),
-        key_board_layout.timer_box,
+        key_board_layout.correct_hits_display,
     );
 
     frame.render_widget(
         Block::new().borders(Borders::ALL),
-        key_board_layout.score_box,
+        key_board_layout.total_score,
     );
 
     for key_layer in key_board_layout.key_layers.iter() {
@@ -227,12 +228,22 @@ pub fn render_events(
                         None => panic!("The Key map is existing but the rect vector layout does not, please check the code"),
                     };
 
-                    let b = Block::bordered().border_type(BorderType::QuadrantInside);
-
                     if state_struct.correct_hit {
-                        frame.render_widget(b.style(Style::new()).fg(Color::Green), *r);
+                        frame.render_widget(
+                            Block::bordered()
+                                .border_type(BorderType::QuadrantInside)
+                                .style(Style::new())
+                                .fg(Color::Green),
+                            *r,
+                        );
                     } else {
-                        frame.render_widget(b.style(Style::new()).fg(Color::Red), *r);
+                        frame.render_widget(
+                            Block::bordered()
+                                .border_type(BorderType::QuadrantInside)
+                                .style(Style::new())
+                                .fg(Color::Red),
+                            *r,
+                        );
                     }
                 } else {
                     if DEBUG {
@@ -263,20 +274,42 @@ pub fn render_events(
     }
 }
 
-// I will need a state for the whole thing to render stuff.
 pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &AppLayout) {
-    match state_struct.get_sentence() {
-        Some(s) => frame.render_widget(
-            Paragraph::new(s)
-                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
-                .centered(),
-            app_layout.text_box,
-        ),
+    match state_struct.get_current_status() {
+        Some(status) => match status {
+            SongStatus::Continuing => match state_struct.get_sentence() {
+                Some(sen) => frame.render_widget(
+                    Paragraph::new(sen)
+                        .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                        .centered(),
+                    app_layout.text_box,
+                ),
+                None => frame.render_widget(
+                    Paragraph::new("Song completed, search for a new song.")
+                        .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                        .centered(),
+                    app_layout.text_box,
+                ),
+            },
+            SongStatus::Completed => frame.render_widget(
+                Paragraph::new("Song completed")
+                    .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                    .centered(),
+                app_layout.text_box,
+            ),
+        },
         None => frame.render_widget(
-            Paragraph::new("Song completed")
-                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
-                .centered(),
-            app_layout.text_box,
+                    Paragraph::new("Search and start a song, use CTRL-S to search a song, use this format t: <Song title name>, a: <Song artist name>")
+                        .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                        .centered(),
+                    app_layout.text_box,
         ),
     }
+
+    frame.render_widget(
+        Paragraph::new(format!("{}", state_struct.correct_hits))
+            .block(Block::new().title("Correct Hits"))
+            .centered(),
+        app_layout.correct_hits_display,
+    );
 }

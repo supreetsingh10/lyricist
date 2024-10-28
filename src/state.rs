@@ -3,7 +3,7 @@ use std::char;
 use crate::keyboard_event::{KeyboardActions, KeyboardEvent, States};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use libreq::response::Song;
+use libreq::response::{Song, SongStatus};
 
 #[derive(Clone, Debug)]
 pub struct TypingState {
@@ -29,6 +29,13 @@ impl TypingState {
         }
 
         None
+    }
+
+    pub fn get_current_status(&self) -> Option<SongStatus> {
+        match self.song.as_ref() {
+            Some(s) => s.get_current_status(),
+            None => None,
+        }
     }
 
     fn build_search_request(&mut self, c: char) {
@@ -73,7 +80,6 @@ impl TypingState {
                         // First start get a random song lyric.
                     }
                     States::TYPE => {
-                        // if current character is null this means the song is over.
                         let c = match &self.get_current_char() {
                             Some(c) => *c,
                             None => return false,
@@ -120,6 +126,11 @@ impl TypingState {
                             let updated_keyboard_action =
                                 KeyboardActions::from_char(c.to_ascii_uppercase());
                             self.keyboard_actions = Some(updated_keyboard_action);
+                        } else if KeyCode::Char(c).eq(&keyboard_actions.key_event.code) {
+                            self.correct_hits += 1;
+                            self.correct_hit = true;
+                            self.update_text_color = true;
+                            self.song.as_mut().map(|s| s.update_sentence());
                         } else {
                             if let KeyCode::Char(incorrect_typed_char) =
                                 keyboard_actions.key_event.code
