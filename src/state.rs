@@ -139,6 +139,7 @@ impl TypingState {
                             self.correct_hit = true;
                             self.update_text_color = true;
                             self.song.as_mut().map(|s| s.update_sentence());
+                            self.keyboard_actions = Some(keyboard_actions);
                         } else {
                             if let KeyCode::Char(incorrect_typed_char) =
                                 keyboard_actions.key_event.code

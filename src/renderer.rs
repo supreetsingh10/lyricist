@@ -252,9 +252,7 @@ pub fn render_events(
                         );
                     }
                 } else {
-                    if DEBUG {
-                        println!("Not found");
-                    }
+                    println!("I found nothing so I am showing nothing");
                 }
             }
         };
