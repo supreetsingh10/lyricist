@@ -23,6 +23,10 @@ impl TypingState {
         self.song.as_ref().map(|s| s.get_sentence_ref())
     }
 
+    pub fn get_current_cursor_location(&self) -> Option<u32> {
+        self.song.as_ref().map(|s| s.get_current_location())
+    }
+
     pub fn get_current_char(&self) -> Option<char> {
         if let Some(s) = self.song.as_ref() {
             return s.get_current_char();
@@ -62,6 +66,9 @@ impl TypingState {
                 match keyboard_actions.state {
                     States::SEARCHOFF => {
                         self.search_completed = self.search_request_build.take();
+                    }
+                    States::SEARCHTERMINATED => {
+                        let _ = self.search_request_build.take();
                     }
                     States::EXIT => return true,
                     States::PAUSE => todo!(),
