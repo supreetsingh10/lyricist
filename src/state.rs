@@ -7,15 +7,16 @@ use libreq::response::{Song, SongStatus};
 
 #[derive(Clone, Debug)]
 pub struct TypingState {
-    pub update_text_color: bool,
-    pub keyboard_actions: Option<KeyboardActions>,
     pub correct_hit: bool,
-    pub search_request_build: Option<String>,
-    pub search_completed: Option<String>,
-    pub total_hits: u32,
     pub correct_hits: u32,
-
+    pub keyboard_actions: Option<KeyboardActions>,
+    pub search_request_build: Option<String>,
+    pub error_string: Option<String>,
+    pub search_completed: Option<String>,
     pub song: Option<Song>,
+    pub total_hits: u32,
+    pub update_text_color: bool,
+    // Add error here, and render that error in the text box
 }
 
 impl TypingState {

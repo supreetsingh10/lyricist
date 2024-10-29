@@ -37,14 +37,15 @@ async fn main() -> Result<()> {
         };
 
     let mut state_struct = TypingState {
-        update_text_color: false,
-        keyboard_actions: None,
         correct_hit: false,
+        correct_hits: 0,
+        error_string: None,
+        keyboard_actions: None,
         search_request_build: None,
         search_completed: None,
-        correct_hits: 0,
-        total_hits: 0,
         song: None,
+        total_hits: 0,
+        update_text_color: false,
     };
 
     let (sn, rc) = async_std::channel::unbounded::<keyboard_event::KeyboardEvent>();
@@ -67,9 +68,12 @@ async fn main() -> Result<()> {
             match client.get_lyrics(req.to_owned()).await {
                 Ok(resp) => match resp.json::<Root>().await {
                     Ok(root) => state_struct.song = Some(Song::new(root)),
-                    Err(e) => panic!("Failed to deserialize the struct {}", e.to_string()),
+                    Err(e) => {
+                        state_struct.error_string =
+                            Some(format!("Failed to deserialize {}", e.to_string()))
+                    }
                 },
-                Err(e) => panic!("Failed to get the request {}", e.to_string()),
+                Err(e) => state_struct.error_string = Some(format!("Could not get the song you requested, please search a different song, probably some black sabbath: Error ->  {}", e.to_string())),
             };
         }
 

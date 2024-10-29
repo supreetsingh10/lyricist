@@ -281,6 +281,17 @@ pub fn render_events(
 }
 
 pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &AppLayout) {
+    if let Some(err) = state_struct.error_string.as_ref() {
+        frame.render_widget(
+            Paragraph::new(Text::from(err.to_string()).red())
+                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                .centered(),
+            app_layout.text_box,
+        );
+
+        return;
+    }
+
     match state_struct.get_current_status() {
         Some(status) => match status {
             SongStatus::Continuing => match state_struct.get_sentence() {
