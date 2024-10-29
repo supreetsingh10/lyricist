@@ -29,13 +29,17 @@ pub struct Song {
     pub sentence: String,
     pub line_index: u32,
 
-    cur_loc: i32,
+    cur_loc: u32,
     song_status: SongStatus,
 }
 
 impl Song {
     pub fn get_sentence_ref(&self) -> &str {
         self.sentence.as_str()
+    }
+
+    pub fn get_current_location(&self) -> u32 {
+        self.cur_loc
     }
 
     pub fn new(s: Root) -> Self {

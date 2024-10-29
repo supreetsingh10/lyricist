@@ -1,22 +1,25 @@
 use crate::keyboard_event::States;
 use crate::{constants::*, TypingState};
+use core::f32;
 use crossterm::event::KeyCode;
 use libreq::response::SongStatus;
 use ratatui::style::{Color, Style};
-use ratatui::text::Text;
+use ratatui::text::{Line, Span, Text};
 use ratatui::{
     layout::{self, Constraint, Direction, Layout, Rect},
-    prelude::Stylize,
+    prelude::*,
     widgets::{Block, BorderType, Borders, Padding, Paragraph},
     Frame,
 };
 use std::collections::HashMap;
+use std::ops::{Div, Mul};
 use std::rc::Rc;
+use std::usize;
 
 pub struct AppLayout {
     text_box: Rect,
     key_layers: Vec<Rc<[Rect]>>,
-    total_score: Rect,
+    total_hits: Rect,
     correct_hits_display: Rect,
     search_box: Rect,
 }
@@ -117,7 +120,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         layout::Flex::Start,
     );
 
-    let total_score = generate_box(
+    let total_hits = generate_box(
         frame.size(),
         Constraint::Percentage(SCORE_BOX_PERCENTAGE),
         Constraint::Length(4),
@@ -129,7 +132,7 @@ pub fn generate_app_layout(frame: &mut Frame, keys: &Vec<Vec<Key>>) -> AppLayout
         text_box,
         key_layers,
         search_box,
-        total_score,
+        total_hits,
         correct_hits_display,
     }
 }
@@ -147,7 +150,7 @@ pub fn render_app_layout(frame: &mut Frame, key_board_layout: &AppLayout, keys: 
 
     frame.render_widget(
         Block::new().borders(Borders::ALL),
-        key_board_layout.total_score,
+        key_board_layout.total_hits,
     );
 
     for key_layer in key_board_layout.key_layers.iter() {
@@ -278,12 +281,31 @@ pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &A
     match state_struct.get_current_status() {
         Some(status) => match status {
             SongStatus::Continuing => match state_struct.get_sentence() {
-                Some(sen) => frame.render_widget(
+                Some(sen) => {
+                    let index: i32 = match state_struct.get_current_cursor_location() {
+                        Some(cur_location) => cur_location.try_into().unwrap(),
+                        None => return,
+                    };
+
+                    if index == 0 {
+                    frame.render_widget(
                     Paragraph::new(sen)
                         .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
                         .centered(),
                     app_layout.text_box,
-                ),
+                )} else {
+                        let (correct_sen, remaining_sen)= sen.split_at(index as usize);
+                        frame.render_widget(
+                            Paragraph::new(Line::from(vec![
+                                Span::styled(correct_sen,Style::default().fg(Color::Green)),
+                                Span::styled(remaining_sen,Style::default().fg(Color::White)),
+                            ]))
+                                .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
+                                .centered(),
+                            app_layout.text_box,
+                        )
+                    }
+                },
                 None => frame.render_widget(
                     Paragraph::new("Song completed, search for a new song.")
                         .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
@@ -292,7 +314,8 @@ pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &A
                 ),
             },
             SongStatus::Completed => frame.render_widget(
-                Paragraph::new("Song completed")
+                Paragraph::new(format!("Song completed, the score is the product of Ratio of correct hits to total hits times 10 = {}", 
+                    (state_struct.correct_hits as f32).div(state_struct.total_hits as f32).mul(10.0 as f32)))
                     .block(Block::new().padding(Padding::top(app_layout.text_box.height / 2)))
                     .centered(),
                 app_layout.text_box,
@@ -311,5 +334,12 @@ pub fn render_text(frame: &mut Frame, state_struct: &TypingState, app_layout: &A
             .block(Block::new().title("Correct Hits"))
             .centered(),
         app_layout.correct_hits_display,
+    );
+
+    frame.render_widget(
+        Paragraph::new(format!("{}", state_struct.total_hits))
+            .block(Block::new().title("Total hits"))
+            .centered(),
+        app_layout.total_hits,
     );
 }
