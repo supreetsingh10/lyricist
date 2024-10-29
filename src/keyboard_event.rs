@@ -9,9 +9,10 @@ use futures_timer::Delay;
 pub enum States {
     EXIT,
     PAUSE,
+    START,
     SEARCH,
     SEARCHOFF,
-    START,
+    SEARCHTERMINATED,
     TYPE,
 }
 
@@ -41,6 +42,9 @@ impl KeyboardActions {
         if *state == States::SEARCH {
             if key_event.eq(&KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE)) {
                 *state = States::SEARCHOFF;
+                return KeyboardActions::new(key_event.to_owned(), *state);
+            } else if key_event.eq(&KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)) {
+                *state = States::SEARCHTERMINATED;
                 return KeyboardActions::new(key_event.to_owned(), *state);
             } else {
                 *state = States::SEARCH;

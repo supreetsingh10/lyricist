@@ -200,6 +200,9 @@ pub fn render_events(
 ) {
     if let Some(l_key_event) = state_struct.keyboard_actions {
         match l_key_event.state {
+            States::SEARCHTERMINATED => {
+                // Do nothing, this will clear the search box render.
+            }
             States::SEARCHOFF => {}
             States::EXIT => todo!(),
             States::PAUSE => todo!(),
