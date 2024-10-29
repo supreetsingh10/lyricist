@@ -1,6 +1,6 @@
 # About 
 
-I got tired of typing slow, I got tired of singing the lyrics wrong, I got tired of Browser typing websites, my quick fox did not want to jump the brown dog anymore.
+I got tired of typing slow, I got tired of singing the lyrics wrong, I got tired of browser typing websites, my quick fox did not want to jump the brown dog anymore.
 Speed up your typing by practising on your favourite songs. 
 
 ## How to set up?
