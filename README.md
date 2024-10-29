@@ -7,7 +7,9 @@ Speed up your typing by practising on your favourite songs.
 
 - Make an account on `https://rapidapi.com/`
 
-- You would need to generate an api key for the api `https://rapidapi.com/Paxsenix0/api/musixmatch-lyrics-songs`, and subscribe the given api. Add the `x-rapid-api-key` & `x-rapid-api-host` to your environment variables. Add these two variables in the given format
+- You would need to generate an api key for the api `https://rapidapi.com/Paxsenix0/api/musixmatch-lyrics-songs`, and subscribe the given api. Add the `x-rapid-api-key` & `x-rapid-api-host` to your environment variables. 
+
+- The format is given the next section
 
 ## For linux 
 
