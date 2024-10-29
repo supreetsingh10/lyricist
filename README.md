@@ -5,9 +5,9 @@ Speed up your typing by practising on your favourite songs.
 
 ## How to set up?
 
-You would need to generate an api key for this api `https://rapidapi.com/Paxsenix0/api/musixmatch-lyrics-songs`, it is called `x-rapid-api-key`. The TUI is using this api to get the lyrics of the song.
+- Make an account on `https://rapidapi.com/`
 
-Add these two variables in the given format 
+- You would need to generate an api key for the api `https://rapidapi.com/Paxsenix0/api/musixmatch-lyrics-songs`, and subscribe the given api. Add the `x-rapid-api-key` & `x-rapid-api-host` to your environment variables. Add these two variables in the given format
 
 ## For linux 
 
