@@ -3,7 +3,7 @@
 I got tired of typing slow, I got tired of singing the lyrics wrong, I got tired of Browser typing websites, my quick fox did not want to jump the brown dog anymore.
 Speed up your typing by practising on your favourite songs. 
 
-- How to set up?
+## How to set up?
 
 You would need to generate an api key for this api `https://rapidapi.com/Paxsenix0/api/musixmatch-lyrics-songs`, it is called `x-rapid-api-key`. The TUI is using this api to get the lyrics of the song.
 
@@ -12,6 +12,7 @@ Add these two variables in the given format
 ## For linux 
 
 `export x_rapid_api_key="YOUR RAPID API KEY HERE"`
+
 `export x_rapid_api_host="YOUR RAPID API HOST KEY HERE"`
 
 
@@ -31,11 +32,10 @@ You can add these to the environment variables make sure you use the correct nam
 - Run the application
 `cargo run --bin lyricist`
 
-- You can install it using cargo as well, if you want to.
-
 
 # How to use
 
+The big rectangle in the center will be your friend, it will be used to display messages in case some exceptions arise
 
-
-
+- Response body is not deserializing.
+- The song searched is not available.
