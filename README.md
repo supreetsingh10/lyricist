@@ -42,3 +42,5 @@ The big rectangle in the center will be your friend, it will be used to display 
 
 Hit `CTRL-s` to search for the song. The search request is supposed to be in a particular format `t: <Artist Name>, a: <Album Name>`
 - Example `t: Black Sabbath, a: Black Sabbath`
+
+The lyrics of the song will appear line by line, there will be an on terminal keyboard render which will emulate your keystrokes. Correct hits will be rendered in green, incorrect ones will be in red.
