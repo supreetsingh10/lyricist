@@ -40,7 +40,6 @@ pub fn generate_client() -> Result<Client, reqwest::Error> {
         .filter(|k| k.0.contains("x_rapid_api"))
         .collect();
 
-    assert_eq!(v.len(), 2);
     let mut header = HeaderMap::new();
 
     for (key, vals) in v.iter() {

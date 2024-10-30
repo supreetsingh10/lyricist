@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
 
     let client = match generate_client() {
         Ok(c) => c,
-        Err(e) => panic!("Failed to create the client {}", e),
+        Err(e) => panic!("Failed to create the client, also make sure you have the required environemnt variables. Erro -> {}", e),
     };
 
     let app_layout: AppLayout = generate_app_layout(&mut terminal.get_frame(), &keys);
@@ -93,10 +93,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    if !DEBUG {
-        if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
-            panic!("Failed to get into alternate Screen {}", e);
-        }
+    if let Err(e) = execute!(stdout(), EnterAlternateScreen) {
+        panic!("Failed to get into alternate Screen {}", e);
     }
 
     if let Err(e) = disable_raw_mode() {

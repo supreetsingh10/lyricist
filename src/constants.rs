@@ -1,7 +1,6 @@
 use crossterm::event::{KeyCode, ModifierKeyCode};
 use std::collections::HashMap;
 
-pub const DEBUG: bool = false;
 pub const KEYBOARD_PERCENTAGE: u16 = 85;
 pub const SEARCH_BOX_PERCENTAGE: u16 = 75;
 pub const TEXT_BOX_PERCENTAGE: u16 = 70;
